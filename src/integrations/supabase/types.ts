@@ -14,7 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      ramais: {
+        Row: {
+          central: string
+          created_at: string
+          descricao_cliente: string | null
+          id: string
+          nome: string
+          status: boolean
+          updated_at: string
+        }
+        Insert: {
+          central: string
+          created_at?: string
+          descricao_cliente?: string | null
+          id?: string
+          nome: string
+          status?: boolean
+          updated_at?: string
+        }
+        Update: {
+          central?: string
+          created_at?: string
+          descricao_cliente?: string | null
+          id?: string
+          nome?: string
+          status?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      usuarios: {
+        Row: {
+          conta: string
+          created_at: string
+          email: string
+          id: string
+          nome: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          conta: string
+          created_at?: string
+          email: string
+          id?: string
+          nome: string
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          conta?: string
+          created_at?: string
+          email?: string
+          id?: string
+          nome?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
