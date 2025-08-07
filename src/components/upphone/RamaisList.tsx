@@ -12,7 +12,6 @@ interface Ramal {
   status: boolean;
   descricao_cliente: string;
   central: string;
-  created_at: string;
 }
 
 export function RamaisList() {
@@ -30,7 +29,7 @@ export function RamaisList() {
       const { data, error } = await supabase
         .from('ramais')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('nome', { ascending: true });
 
       if (error) throw error;
       setRamais(data || []);
@@ -95,9 +94,9 @@ export function RamaisList() {
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-foreground">Criado em</p>
+                    <p className="text-sm font-medium text-foreground">Central</p>
                     <p className="text-sm text-muted-foreground">
-                      {new Date(ramal.created_at).toLocaleDateString('pt-BR')}
+                      {ramal.central}
                     </p>
                   </div>
                   <div className="flex items-center justify-between pt-2">
