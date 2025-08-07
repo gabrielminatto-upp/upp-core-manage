@@ -47,30 +47,21 @@ export type Database = {
       usuarios: {
         Row: {
           conta: string
-          created_at: string
           email: string
-          id: string
           nome: string
           tipo: string
-          updated_at: string
         }
         Insert: {
           conta: string
-          created_at?: string
           email: string
-          id?: string
           nome: string
           tipo: string
-          updated_at?: string
         }
         Update: {
           conta?: string
-          created_at?: string
           email?: string
-          id?: string
           nome?: string
           tipo?: string
-          updated_at?: string
         }
         Relationships: []
       }

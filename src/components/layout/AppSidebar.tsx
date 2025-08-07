@@ -1,4 +1,4 @@
-import { Users, Phone, BarChart3, LogOut } from "lucide-react";
+import { Users, Phone, BarChart3 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -10,12 +10,8 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
-  SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import uppLogo from "@/assets/upp-logo.png";
 
 const navigationItems = [
@@ -29,42 +25,20 @@ const navigationItems = [
     title: "Uppchannel", 
     url: "/uppchannel", 
     icon: Users,
-    description: "Gestão de usuários"
+    description: "Consulta de usuários"
   },
   { 
     title: "Upphone", 
     url: "/upphone", 
     icon: Phone,
-    description: "Gestão de ramais"
+    description: "Consulta de ramais"
   },
 ];
 
-interface AppSidebarProps {
-  onLogout: () => void;
-}
-
-export function AppSidebar({ onLogout }: AppSidebarProps) {
+export function AppSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
-  const { toast } = useToast();
   const collapsed = state === "collapsed";
-
-  const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut();
-      toast({
-        title: "Logout realizado",
-        description: "Até logo!",
-      });
-      onLogout();
-    } catch (error) {
-      toast({
-        title: "Erro no logout",
-        description: "Tente novamente.",
-        variant: "destructive",
-      });
-    }
-  };
 
   const isActive = (path: string) => {
     if (path === "/") {
@@ -90,8 +64,8 @@ export function AppSidebar({ onLogout }: AppSidebarProps) {
           />
           {!collapsed && (
             <div>
-              <h2 className="font-semibold text-sidebar-foreground">Upp Core</h2>
-              <p className="text-xs text-sidebar-foreground/60">Manage</p>
+              <h2 className="font-semibold text-sidebar-foreground">Upp Portal</h2>
+              <p className="text-xs text-sidebar-foreground/60">Consultas</p>
             </div>
           )}
         </div>
@@ -127,19 +101,6 @@ export function AppSidebar({ onLogout }: AppSidebarProps) {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-
-      <SidebarFooter className="border-t border-sidebar-border p-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleLogout}
-          className="w-full justify-start"
-          title={collapsed ? "Sair" : undefined}
-        >
-          <LogOut className="h-4 w-4 shrink-0" />
-          {!collapsed && <span className="ml-2">Sair</span>}
-        </Button>
-      </SidebarFooter>
     </Sidebar>
   );
 }
