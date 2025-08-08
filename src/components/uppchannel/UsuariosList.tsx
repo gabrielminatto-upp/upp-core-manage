@@ -74,13 +74,13 @@ export function UsuariosList() {
     },
   });
 
-  // Estatísticas (total e e-mails únicos) — respeita o filtro de conta e pesquisa (tipado)
+  // Estatísticas (total e IDs únicos) — respeita o filtro de conta e pesquisa (tipado)
   const {
     data: stats,
     isLoading: statsLoading,
-  } = useQuery<{ total: number; unique_emails: number }>({
+  } = useQuery<{ total: number; unique_ids: number }>({
     queryKey: ["usuarios_stats", conta, searchTerm],
-    queryFn: async (): Promise<{ total: number; unique_emails: number }> => {
+    queryFn: async (): Promise<{ total: number; unique_ids: number }> => {
       // Se há termo de pesquisa, usar a contagem da query principal
       if (searchTerm.trim()) {
         // Fazer uma query para contar com os filtros aplicados
@@ -100,10 +100,10 @@ export function UsuariosList() {
         const { count, error } = await query;
         if (error) throw error;
 
-        // Para e-mails únicos com pesquisa, fazer uma query separada
+        // Para IDs únicos com pesquisa, fazer uma query separada
         let uniqueQuery = supabase
           .from("usuarios")
-          .select("email", { count: "exact" });
+          .select("id", { count: "exact" });
 
         if (conta) {
           uniqueQuery = uniqueQuery.eq("conta", conta);
@@ -113,17 +113,17 @@ export function UsuariosList() {
           `nome.ilike.%${searchLower}%,email.ilike.%${searchLower}%,conta.ilike.%${searchLower}%`
         );
 
-        const { data: uniqueEmails, error: uniqueError } = await uniqueQuery;
+        const { data: uniqueIds, error: uniqueError } = await uniqueQuery;
         if (uniqueError) throw uniqueError;
 
-        // Contar e-mails únicos
-        const uniqueEmailSet = new Set(
-          (uniqueEmails || []).map((u: any) => u.email)
+        // Contar IDs únicos
+        const uniqueIdSet = new Set(
+          (uniqueIds || []).map((u: any) => u.id)
         );
 
         return {
           total: count || 0,
-          unique_emails: uniqueEmailSet.size,
+          unique_ids: uniqueIdSet.size,
         };
       }
 
@@ -135,8 +135,8 @@ export function UsuariosList() {
       const row =
         (Array.isArray(data) && data.length > 0
           ? data[0]
-          : { total: 0, unique_emails: 0 }) || { total: 0, unique_emails: 0 };
-      return row as { total: number; unique_emails: number };
+          : { total: 0, unique_ids: 0 }) || { total: 0, unique_ids: 0 };
+      return row as { total: number; unique_ids: number };
     },
     meta: {
       onError: (err: any) => {
@@ -362,17 +362,17 @@ export function UsuariosList() {
         <Card className="shadow-card">
           <CardContent className="p-6">
             <p className="text-sm text-muted-foreground">
-              Usuários únicos (por e-mail)
+              Usuários únicos (por ID)
             </p>
             {statsLoading ? (
               <Skeleton className="h-8 w-24 mt-2" />
             ) : (
               <p className="text-2xl font-bold text-foreground mt-2">
-                {stats?.unique_emails ?? 0}
+                {stats?.unique_ids ?? 0}
               </p>
             )}
             <p className="text-xs text-muted-foreground mt-1">
-              Considera apenas e-mails distintos
+              Considera apenas IDs distintos
             </p>
           </CardContent>
         </Card>

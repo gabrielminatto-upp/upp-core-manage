@@ -77,7 +77,7 @@ export type Database = {
         Args: { conta_filter?: string }
         Returns: {
           total: number
-          unique_emails: number
+          unique_ids: number
         }[]
       }
     }
