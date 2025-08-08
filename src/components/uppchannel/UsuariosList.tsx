@@ -61,14 +61,19 @@ export function UsuariosList() {
     "idle" | "processando" | "concluido"
   >("idle");
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const doneTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Função para chamar o webhook
   const handleUpdate = async () => {
     setIsUpdating(true);
     setProcessingStatus("processando");
     if (timerRef.current) clearTimeout(timerRef.current);
+    if (doneTimerRef.current) clearTimeout(doneTimerRef.current);
     timerRef.current = setTimeout(() => {
       setProcessingStatus("concluido");
+      doneTimerRef.current = setTimeout(() => {
+        setProcessingStatus("idle");
+      }, 5000); // 5 segundos mostrando 'Concluído!'
     }, 40000);
     try {
       // Gerar um ID único para rastrear esta execução
@@ -129,6 +134,7 @@ export function UsuariosList() {
   React.useEffect(() => {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
+      if (doneTimerRef.current) clearTimeout(doneTimerRef.current);
     };
   }, []);
 
