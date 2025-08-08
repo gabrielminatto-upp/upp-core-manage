@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { User, Filter } from "lucide-react";
+import { User, Filter, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { Input } from "@/components/ui/input";
 
 interface Usuario {
   nome: string;
@@ -46,6 +47,7 @@ export function UsuariosList() {
   const { toast } = useToast();
   const [page, setPage] = useState(1);
   const [conta, setConta] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Lista de contas/empresas (tipado)
   const {
@@ -72,13 +74,60 @@ export function UsuariosList() {
     },
   });
 
-  // Estatísticas (total e e-mails únicos) — respeita o filtro de conta (tipado)
+  // Estatísticas (total e e-mails únicos) — respeita o filtro de conta e pesquisa (tipado)
   const {
     data: stats,
     isLoading: statsLoading,
   } = useQuery<{ total: number; unique_emails: number }>({
-    queryKey: ["usuarios_stats", conta],
+    queryKey: ["usuarios_stats", conta, searchTerm],
     queryFn: async (): Promise<{ total: number; unique_emails: number }> => {
+      // Se há termo de pesquisa, usar a contagem da query principal
+      if (searchTerm.trim()) {
+        // Fazer uma query para contar com os filtros aplicados
+        let query = supabase
+          .from("usuarios")
+          .select("*", { count: "exact", head: true });
+
+        if (conta) {
+          query = query.eq("conta", conta);
+        }
+
+        const searchLower = searchTerm.toLowerCase().trim();
+        query = query.or(
+          `nome.ilike.%${searchLower}%,email.ilike.%${searchLower}%,conta.ilike.%${searchLower}%`
+        );
+
+        const { count, error } = await query;
+        if (error) throw error;
+
+        // Para e-mails únicos com pesquisa, fazer uma query separada
+        let uniqueQuery = supabase
+          .from("usuarios")
+          .select("email", { count: "exact" });
+
+        if (conta) {
+          uniqueQuery = uniqueQuery.eq("conta", conta);
+        }
+
+        uniqueQuery = uniqueQuery.or(
+          `nome.ilike.%${searchLower}%,email.ilike.%${searchLower}%,conta.ilike.%${searchLower}%`
+        );
+
+        const { data: uniqueEmails, error: uniqueError } = await uniqueQuery;
+        if (uniqueError) throw uniqueError;
+
+        // Contar e-mails únicos
+        const uniqueEmailSet = new Set(
+          (uniqueEmails || []).map((u: any) => u.email)
+        );
+
+        return {
+          total: count || 0,
+          unique_emails: uniqueEmailSet.size,
+        };
+      }
+
+      // Se não há pesquisa, usar a RPC original
       const { data, error } = await supabase.rpc("usuarios_stats", {
         conta_filter: conta ?? null,
       });
@@ -100,13 +149,13 @@ export function UsuariosList() {
     },
   });
 
-  // Usuários paginados — respeita o filtro de conta (tipado + keepPreviousData v5)
+  // Usuários paginados — respeita o filtro de conta e pesquisa (tipado + keepPreviousData v5)
   const {
     data: usuariosData = { rows: [], count: 0 },
     isLoading: usuariosLoading,
     isFetching: usuariosFetching,
   } = useQuery<{ rows: Usuario[]; count: number }>({
-    queryKey: ["usuarios", conta, page, PAGE_SIZE],
+    queryKey: ["usuarios", conta, searchTerm, page, PAGE_SIZE],
     queryFn: async (): Promise<{ rows: Usuario[]; count: number }> => {
       const from = (page - 1) * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
@@ -117,6 +166,14 @@ export function UsuariosList() {
 
       if (conta) {
         query = query.eq("conta", conta);
+      }
+
+      // Aplicar filtro de pesquisa se houver termo de busca
+      if (searchTerm.trim()) {
+        const searchLower = searchTerm.toLowerCase().trim();
+        query = query.or(
+          `nome.ilike.%${searchLower}%,email.ilike.%${searchLower}%,conta.ilike.%${searchLower}%`
+        );
       }
 
       const { data, error, count } = await query.range(from, to);
@@ -150,6 +207,12 @@ export function UsuariosList() {
   const handleContaChange = (value: string) => {
     setConta(value === "ALL" ? null : value);
     setPage(1);
+  };
+
+  // Função para lidar com mudanças na pesquisa
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setPage(1); // Reset para primeira página quando pesquisar
   };
 
   const getTipoBadgeVariant = (tipo: string) => {
@@ -247,6 +310,31 @@ export function UsuariosList() {
         </div>
       </div>
 
+      {/* Barra de Pesquisa */}
+      <div className="w-full max-w-md">
+        <label className="mb-2 block text-sm font-medium text-foreground">
+          <span className="inline-flex items-center gap-2">
+            <Search className="h-4 w-4 text-muted-foreground" />
+            Pesquisar usuários
+          </span>
+        </label>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Pesquisar por nome, email ou conta..."
+            value={searchTerm}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        {searchTerm && (
+          <p className="text-xs text-muted-foreground mt-1">
+            Pesquisando por: "{searchTerm}"
+          </p>
+        )}
+      </div>
+
       {/* Métricas */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Card className="shadow-card">
@@ -259,9 +347,13 @@ export function UsuariosList() {
                 {stats?.total ?? 0}
               </p>
             )}
-            {conta && (
+            {(conta || searchTerm) && (
               <p className="text-xs text-muted-foreground mt-1">
-                Filtrado por conta: {conta}
+                {conta && searchTerm
+                  ? `Filtrado por conta: ${conta} e pesquisa: "${searchTerm}"`
+                  : conta
+                  ? `Filtrado por conta: ${conta}`
+                  : `Pesquisando por: "${searchTerm}"`}
               </p>
             )}
           </CardContent>
@@ -313,7 +405,13 @@ export function UsuariosList() {
             ) : totalCount > 0 ? (
               <span>
                 Mostrando {showingFrom}–{showingTo} de {totalCount}{" "}
-                {conta ? `para "${conta}"` : "no total"}
+                {conta && searchTerm
+                  ? `para "${conta}" e pesquisa "${searchTerm}"`
+                  : conta
+                  ? `para "${conta}"`
+                  : searchTerm
+                  ? `para pesquisa "${searchTerm}"`
+                  : "no total"}
               </span>
             ) : (
               <span>Nenhum usuário encontrado</span>
@@ -321,6 +419,7 @@ export function UsuariosList() {
           </TableCaption>
           <TableHeader>
             <TableRow>
+              <TableHead>ID</TableHead>
               <TableHead>Nome</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Conta/Empresa</TableHead>
@@ -331,7 +430,7 @@ export function UsuariosList() {
             {usuariosLoading && usuariosData?.rows?.length === 0 ? (
               Array.from({ length: 6 }).map((_, i) => (
                 <TableRow key={i}>
-                  <TableCell colSpan={4}>
+                  <TableCell colSpan={5}>
                     <Skeleton className="h-6 w-full" />
                   </TableCell>
                 </TableRow>
@@ -339,6 +438,9 @@ export function UsuariosList() {
             ) : (usuariosData?.rows || []).length > 0 ? (
               (usuariosData?.rows || []).map((usuario, idx) => (
                 <TableRow key={usuario.id ?? `${usuario.email}-${idx}`}>
+                  <TableCell className="text-muted-foreground font-mono text-sm">
+                    {usuario.id ?? "-"}
+                  </TableCell>
                   <TableCell className="font-medium text-foreground">
                     {usuario.nome}
                   </TableCell>
@@ -357,14 +459,18 @@ export function UsuariosList() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={4}>
+                <TableCell colSpan={5}>
                   <div className="flex flex-col items-center justify-center py-8">
                     <User className="h-12 w-12 text-muted-foreground mb-4" />
                     <h3 className="text-lg font-semibold text-foreground mb-2">
                       Nenhum usuário encontrado
                     </h3>
                     <p className="text-muted-foreground text-center">
-                      {conta
+                      {searchTerm
+                        ? conta
+                          ? "Não há usuários que correspondam à pesquisa e conta selecionada."
+                          : "Não há usuários que correspondam à pesquisa."
+                        : conta
                         ? "Não há usuários para a conta selecionada."
                         : "Não há usuários cadastrados no sistema."}
                     </p>

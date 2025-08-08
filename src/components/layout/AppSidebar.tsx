@@ -57,11 +57,28 @@ export function AppSidebar() {
     <Sidebar className={collapsed ? "w-16" : "w-64"} collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border p-4">
         <div className="flex items-center gap-3">
-          <img 
-            src={uppLogo} 
-            alt="Upp Tecnologia" 
-            className="h-8 w-auto"
-          />
+          <div className="flex-shrink-0 flex items-center justify-center min-w-[32px] min-h-[32px]">
+            <img 
+              src={uppLogo} 
+              alt="Upp Tecnologia" 
+              className="h-6 w-6 object-contain"
+              onLoad={() => console.log('Logo carregada com sucesso')}
+              onError={(e) => {
+                console.error('Erro ao carregar logo:', e);
+                console.log('Tentando fallback...');
+                e.currentTarget.style.display = 'none';
+                // Adicionar fallback de texto
+                const fallback = document.createElement('div');
+                fallback.className = 'text-black font-bold text-xs';
+                fallback.textContent = 'UPP';
+                e.currentTarget.parentNode?.appendChild(fallback);
+              }}
+            />
+            {/* Fallback visual caso a imagem não carregue */}
+            <div className="text-black font-bold text-xs absolute" style={{ display: 'none' }}>
+              UPP
+            </div>
+          </div>
           {!collapsed && (
             <div>
               <h2 className="font-semibold text-sidebar-foreground">Upp Portal</h2>
