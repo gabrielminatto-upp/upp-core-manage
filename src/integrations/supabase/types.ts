@@ -17,49 +17,46 @@ export type Database = {
       ramais: {
         Row: {
           central: string
-          created_at: string
           descricao_cliente: string | null
           id: string
           nome: string
           status: boolean
-          updated_at: string
         }
         Insert: {
           central: string
-          created_at?: string
           descricao_cliente?: string | null
           id?: string
           nome: string
           status?: boolean
-          updated_at?: string
         }
         Update: {
           central?: string
-          created_at?: string
           descricao_cliente?: string | null
           id?: string
           nome?: string
           status?: boolean
-          updated_at?: string
         }
         Relationships: []
       }
       usuarios: {
         Row: {
-          conta: string
+          conta: string | null
           email: string
+          id: string
           nome: string
           tipo: string
         }
         Insert: {
-          conta: string
+          conta?: string | null
           email: string
+          id?: string
           nome: string
           tipo: string
         }
         Update: {
-          conta?: string
+          conta?: string | null
           email?: string
+          id?: string
           nome?: string
           tipo?: string
         }
