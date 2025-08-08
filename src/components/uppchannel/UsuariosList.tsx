@@ -2,9 +2,12 @@ import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { User, Filter, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { User, Filter, Search, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useWorkflowStatus } from "@/hooks/use-workflow-status";
+import { registerWorkflowCallback, generateCallbackUrl } from "@/utils/workflow-callback";
 import {
   Table,
   TableBody,
@@ -45,9 +48,63 @@ const PAGE_SIZE = 12;
 
 export function UsuariosList() {
   const { toast } = useToast();
+  const { addExecution, updateExecutionStatus, pendingExecutions } = useWorkflowStatus();
   const [page, setPage] = useState(1);
   const [conta, setConta] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  // Função para chamar o webhook
+  const handleUpdate = async () => {
+    setIsUpdating(true);
+    try {
+      // Gerar um ID único para rastrear esta execução
+      const executionId = `update_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Adicionar à lista de execuções pendentes
+      addExecution(executionId);
+      
+      // Registrar callback para esta execução
+      registerWorkflowCallback(executionId, (data) => {
+        updateExecutionStatus(executionId, data.status, data.message);
+      });
+      
+      const callbackUrl = generateCallbackUrl(executionId);
+      
+      const response = await fetch('https://integrations-crm.absolutatecnologia.com.br/webhook/58f482fd-bbd9-4668-8c80-e56cce154df6', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'update_usuarios',
+          execution_id: executionId,
+          callback_url: callbackUrl, // URL para callback
+          timestamp: new Date().toISOString(),
+        }),
+      });
+
+              if (response.ok) {
+          toast({
+            title: "Workflow iniciado!",
+            description: "Aguardando conclusão do processamento...",
+          });
+        } else {
+          throw new Error(`Erro ${response.status}: ${response.statusText}`);
+        }
+    } catch (error) {
+      console.error('Erro ao chamar webhook:', error);
+      toast({
+        title: "Erro ao atualizar",
+        description: error instanceof Error ? error.message : "Erro desconhecido ao chamar webhook.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+
 
   // Lista de contas/empresas (tipado)
   const {
@@ -273,40 +330,58 @@ export function UsuariosList() {
           </p>
         </div>
 
-        {/* Filtro por Conta */}
-        <div className="w-full md:w-[320px]">
-          <label className="mb-2 block text-sm font-medium text-foreground">
-            <span className="inline-flex items-center gap-2">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              Filtrar por conta/empresa
-            </span>
-          </label>
-          <Select
-            value={conta ?? "ALL"}
-            onValueChange={handleContaChange}
+        {/* Controles */}
+        <div className="flex flex-col gap-4 md:flex-row md:items-end">
+          {/* Botão Atualizar */}
+          <Button
+            onClick={handleUpdate}
+            disabled={isUpdating || pendingExecutions.length > 0}
+            className="w-full md:w-auto relative"
           >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Todas as contas" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">Todas as contas</SelectItem>
-              {contasLoading ? (
-                <div className="p-2">
-                  <Skeleton className="h-5 w-40" />
-                </div>
-              ) : (contas || []).length > 0 ? (
-                (contas || []).map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
-                  </SelectItem>
-                ))
-              ) : (
-                <div className="p-2 text-sm text-muted-foreground">
-                  Nenhuma conta disponível
-                </div>
-              )}
-            </SelectContent>
-          </Select>
+            <RefreshCw className={`h-4 w-4 mr-2 ${isUpdating ? 'animate-spin' : ''}`} />
+            {isUpdating ? 'Atualizando...' : pendingExecutions.length > 0 ? 'Processando...' : 'Atualizar'}
+            {pendingExecutions.length > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                {pendingExecutions.length}
+              </span>
+            )}
+          </Button>
+
+          {/* Filtro por Conta */}
+          <div className="w-full md:w-[320px]">
+            <label className="mb-2 block text-sm font-medium text-foreground">
+              <span className="inline-flex items-center gap-2">
+                <Filter className="h-4 w-4 text-muted-foreground" />
+                Filtrar por conta/empresa
+              </span>
+            </label>
+            <Select
+              value={conta ?? "ALL"}
+              onValueChange={handleContaChange}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Todas as contas" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Todas as contas</SelectItem>
+                {contasLoading ? (
+                  <div className="p-2">
+                    <Skeleton className="h-5 w-40" />
+                  </div>
+                ) : (contas || []).length > 0 ? (
+                  (contas || []).map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {c}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <div className="p-2 text-sm text-muted-foreground">
+                    Nenhuma conta disponível
+                  </div>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 

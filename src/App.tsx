@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Uppchannel from "./pages/Uppchannel";
 import Upphone from "./pages/Upphone";
 import NotFound from "./pages/NotFound";
+import WorkflowCallback from "./pages/WorkflowCallback";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +23,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/uppchannel" element={<Uppchannel />} />
             <Route path="/upphone" element={<Upphone />} />
+            <Route path="/api/workflow-callback/:executionId" element={<WorkflowCallback />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </MainLayout>
