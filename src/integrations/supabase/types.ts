@@ -43,6 +43,7 @@ export type Database = {
           conta: string | null
           email: string
           id: string
+          iduppchannel: string | null
           nome: string
           tipo: string
         }
@@ -50,6 +51,7 @@ export type Database = {
           conta?: string | null
           email: string
           id?: string
+          iduppchannel?: string | null
           nome: string
           tipo: string
         }
@@ -57,6 +59,7 @@ export type Database = {
           conta?: string | null
           email?: string
           id?: string
+          iduppchannel?: string | null
           nome?: string
           tipo?: string
         }
@@ -77,7 +80,7 @@ export type Database = {
         Args: { conta_filter?: string }
         Returns: {
           total: number
-          unique_ids: number
+          unique_uppchannel_ids: number
         }[]
       }
     }

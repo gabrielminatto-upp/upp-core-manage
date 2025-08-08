@@ -41,7 +41,7 @@ interface Usuario {
   email: string;
   tipo: string;
   conta: string | null;
-  id?: string;
+  iduppchannel?: string | null;
 }
 
 const PAGE_SIZE = 12;
@@ -135,9 +135,9 @@ export function UsuariosList() {
   const {
     data: stats,
     isLoading: statsLoading,
-  } = useQuery<{ total: number; unique_ids: number }>({
+  } = useQuery<{ total: number; unique_uppchannel_ids: number }>({
     queryKey: ["usuarios_stats", conta, searchTerm],
-    queryFn: async (): Promise<{ total: number; unique_ids: number }> => {
+    queryFn: async (): Promise<{ total: number; unique_uppchannel_ids: number }> => {
       // Se há termo de pesquisa, usar a contagem da query principal
       if (searchTerm.trim()) {
         // Fazer uma query para contar com os filtros aplicados
@@ -151,36 +151,36 @@ export function UsuariosList() {
 
         const searchLower = searchTerm.toLowerCase().trim();
         query = query.or(
-          `nome.ilike.%${searchLower}%,email.ilike.%${searchLower}%,conta.ilike.%${searchLower}%`
+          `nome.ilike.%${searchLower}%,email.ilike.%${searchLower}%,conta.ilike.%${searchLower}%,iduppchannel.ilike.%${searchLower}%`
         );
 
         const { count, error } = await query;
         if (error) throw error;
 
-        // Para IDs únicos com pesquisa, fazer uma query separada
+        // Para IDs Uppchannel únicos com pesquisa, fazer uma query separada
         let uniqueQuery = supabase
           .from("usuarios")
-          .select("id", { count: "exact" });
+          .select("iduppchannel", { count: "exact" });
 
         if (conta) {
           uniqueQuery = uniqueQuery.eq("conta", conta);
         }
 
         uniqueQuery = uniqueQuery.or(
-          `nome.ilike.%${searchLower}%,email.ilike.%${searchLower}%,conta.ilike.%${searchLower}%`
+          `nome.ilike.%${searchLower}%,email.ilike.%${searchLower}%,conta.ilike.%${searchLower}%,iduppchannel.ilike.%${searchLower}%`
         );
 
         const { data: uniqueIds, error: uniqueError } = await uniqueQuery;
         if (uniqueError) throw uniqueError;
 
-        // Contar IDs únicos
-        const uniqueIdSet = new Set(
-          (uniqueIds || []).map((u: any) => u.id)
+        // Contar IDs Uppchannel únicos
+        const uniqueUppchannelIdSet = new Set(
+          (uniqueIds || []).map((u: any) => u.iduppchannel).filter((id: string | null) => id !== null)
         );
 
         return {
           total: count || 0,
-          unique_ids: uniqueIdSet.size,
+          unique_uppchannel_ids: uniqueUppchannelIdSet.size,
         };
       }
 
@@ -192,8 +192,8 @@ export function UsuariosList() {
       const row =
         (Array.isArray(data) && data.length > 0
           ? data[0]
-          : { total: 0, unique_ids: 0 }) || { total: 0, unique_ids: 0 };
-      return row as { total: number; unique_ids: number };
+          : { total: 0, unique_uppchannel_ids: 0 }) || { total: 0, unique_uppchannel_ids: 0 };
+      return row as { total: number; unique_uppchannel_ids: number };
     },
     meta: {
       onError: (err: any) => {
@@ -229,7 +229,7 @@ export function UsuariosList() {
       if (searchTerm.trim()) {
         const searchLower = searchTerm.toLowerCase().trim();
         query = query.or(
-          `nome.ilike.%${searchLower}%,email.ilike.%${searchLower}%,conta.ilike.%${searchLower}%`
+          `nome.ilike.%${searchLower}%,email.ilike.%${searchLower}%,conta.ilike.%${searchLower}%,iduppchannel.ilike.%${searchLower}%`
         );
       }
 
@@ -320,23 +320,24 @@ export function UsuariosList() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Cabeçalho */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex-1">
           <h1 className="text-3xl font-bold text-foreground">Usuários</h1>
-          <p className="text-muted-foreground mt-2">
+          <p className="text-muted-foreground mt-1">
             Consulta de usuários do sistema Uppchannel
           </p>
         </div>
 
         {/* Controles */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-end">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center">
           {/* Botão Atualizar */}
           <Button
             onClick={handleUpdate}
             disabled={isUpdating || pendingExecutions.length > 0}
             className="w-full md:w-auto relative"
+            size="sm"
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${isUpdating ? 'animate-spin' : ''}`} />
             {isUpdating ? 'Atualizando...' : pendingExecutions.length > 0 ? 'Processando...' : 'Atualizar'}
@@ -348,8 +349,8 @@ export function UsuariosList() {
           </Button>
 
           {/* Filtro por Conta */}
-          <div className="w-full md:w-[320px]">
-            <label className="mb-2 block text-sm font-medium text-foreground">
+          <div className="w-full md:w-[280px]">
+            <label className="mb-1 block text-sm font-medium text-foreground">
               <span className="inline-flex items-center gap-2">
                 <Filter className="h-4 w-4 text-muted-foreground" />
                 Filtrar por conta/empresa
@@ -359,7 +360,7 @@ export function UsuariosList() {
               value={conta ?? "ALL"}
               onValueChange={handleContaChange}
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="w-full h-9">
                 <SelectValue placeholder="Todas as contas" />
               </SelectTrigger>
               <SelectContent>
@@ -386,7 +387,7 @@ export function UsuariosList() {
       </div>
 
       {/* Barra de Pesquisa */}
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-2xl">
         <label className="mb-2 block text-sm font-medium text-foreground">
           <span className="inline-flex items-center gap-2">
             <Search className="h-4 w-4 text-muted-foreground" />
@@ -397,15 +398,15 @@ export function UsuariosList() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="text"
-            placeholder="Pesquisar por nome, email ou conta..."
+            placeholder="Pesquisar por nome, email, conta ou ID Uppchannel..."
             value={searchTerm}
             onChange={(e) => handleSearchChange(e.target.value)}
-            className="pl-10"
+            className="pl-10 h-10"
           />
         </div>
         {searchTerm && (
           <p className="text-xs text-muted-foreground mt-1">
-            Pesquisando por: "{searchTerm}"
+            Pesquisando por: "{searchTerm}" (nome, email, conta ou ID Uppchannel)
           </p>
         )}
       </div>
@@ -413,17 +414,17 @@ export function UsuariosList() {
       {/* Métricas */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Card className="shadow-card">
-          <CardContent className="p-6">
-            <p className="text-sm text-muted-foreground">Total de usuários</p>
+          <CardContent className="p-5">
+            <p className="text-sm text-muted-foreground mb-3">Total de usuários</p>
             {statsLoading ? (
-              <Skeleton className="h-8 w-24 mt-2" />
+              <Skeleton className="h-8 w-20" />
             ) : (
-              <p className="text-2xl font-bold text-foreground mt-2">
+              <p className="text-3xl font-bold text-foreground">
                 {stats?.total ?? 0}
               </p>
             )}
             {(conta || searchTerm) && (
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground mt-3">
                 {conta && searchTerm
                   ? `Filtrado por conta: ${conta} e pesquisa: "${searchTerm}"`
                   : conta
@@ -435,36 +436,36 @@ export function UsuariosList() {
         </Card>
 
         <Card className="shadow-card">
-          <CardContent className="p-6">
-            <p className="text-sm text-muted-foreground">
-              Usuários únicos (por ID)
+          <CardContent className="p-5">
+            <p className="text-sm text-muted-foreground mb-3">
+              IDs Uppchannel únicos
             </p>
             {statsLoading ? (
-              <Skeleton className="h-8 w-24 mt-2" />
+              <Skeleton className="h-8 w-20" />
             ) : (
-              <p className="text-2xl font-bold text-foreground mt-2">
-                {stats?.unique_ids ?? 0}
+              <p className="text-3xl font-bold text-foreground">
+                {stats?.unique_uppchannel_ids ?? 0}
               </p>
             )}
-            <p className="text-xs text-muted-foreground mt-1">
-              Considera apenas IDs distintos
+            <p className="text-xs text-muted-foreground mt-3">
+              IDs únicos do Uppchannel
             </p>
           </CardContent>
         </Card>
 
         <Card className="shadow-card">
-          <CardContent className="p-6">
-            <p className="text-sm text-muted-foreground">
+          <CardContent className="p-5">
+            <p className="text-sm text-muted-foreground mb-3">
               Intervalo exibido
             </p>
             {usuariosLoading && !usuariosFetching ? (
-              <Skeleton className="h-8 w-40 mt-2" />
+              <Skeleton className="h-8 w-24" />
             ) : (
-              <p className="text-2xl font-bold text-foreground mt-2">
+              <p className="text-3xl font-bold text-foreground">
                 {showingFrom} – {showingTo}
               </p>
             )}
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground mt-3">
               De um total de {totalCount}
             </p>
           </CardContent>
@@ -474,7 +475,7 @@ export function UsuariosList() {
       {/* Tabela */}
       <div className="rounded-md border border-border bg-card">
         <Table>
-          <TableCaption className="px-4 py-2 text-left">
+          <TableCaption className="px-4 py-3 text-left">
             {usuariosLoading && usuariosFetching ? (
               <span>Carregando usuários...</span>
             ) : totalCount > 0 ? (
@@ -494,11 +495,11 @@ export function UsuariosList() {
           </TableCaption>
           <TableHeader>
             <TableRow>
-              <TableHead>ID</TableHead>
               <TableHead>Nome</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead>Conta/Empresa</TableHead>
-              <TableHead>Tipo</TableHead>
+              <TableHead className="w-32">ID Uppchannel</TableHead>
+              <TableHead className="w-40">Conta/Empresa</TableHead>
+              <TableHead className="w-24">Tipo</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -512,21 +513,21 @@ export function UsuariosList() {
               ))
             ) : (usuariosData?.rows || []).length > 0 ? (
               (usuariosData?.rows || []).map((usuario, idx) => (
-                <TableRow key={usuario.id ?? `${usuario.email}-${idx}`}>
-                  <TableCell className="text-muted-foreground font-mono text-sm">
-                    {usuario.id ?? "-"}
-                  </TableCell>
+                <TableRow key={`${usuario.email}-${idx}`}>
                   <TableCell className="font-medium text-foreground">
                     {usuario.nome}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {usuario.email}
                   </TableCell>
+                  <TableCell className="text-muted-foreground font-mono text-sm">
+                    {usuario.iduppchannel ?? "-"}
+                  </TableCell>
                   <TableCell className="text-muted-foreground">
                     {usuario.conta ?? "-"}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={getTipoBadgeVariant(usuario.tipo)}>
+                    <Badge variant={getTipoBadgeVariant(usuario.tipo)} className="text-xs">
                       {usuario.tipo}
                     </Badge>
                   </TableCell>
@@ -535,12 +536,12 @@ export function UsuariosList() {
             ) : (
               <TableRow>
                 <TableCell colSpan={5}>
-                  <div className="flex flex-col items-center justify-center py-8">
+                  <div className="flex flex-col items-center justify-center py-12">
                     <User className="h-12 w-12 text-muted-foreground mb-4" />
                     <h3 className="text-lg font-semibold text-foreground mb-2">
                       Nenhum usuário encontrado
                     </h3>
-                    <p className="text-muted-foreground text-center">
+                    <p className="text-muted-foreground text-center max-w-md">
                       {searchTerm
                         ? conta
                           ? "Não há usuários que correspondam à pesquisa e conta selecionada."
@@ -558,53 +559,57 @@ export function UsuariosList() {
       </div>
 
       {/* Paginação */}
-      <Pagination className="mt-2">
-        <PaginationContent>
-          <PaginationItem>
-            <PaginationPrevious
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                setPage((p) => Math.max(1, p - 1));
-              }}
-              className="cursor-pointer"
-            />
-          </PaginationItem>
-
-          {pageNumbers.map((p, idx) =>
-            p === "..." ? (
-              <PaginationItem key={`ellipsis-${idx}`}>
-                <PaginationEllipsis />
-              </PaginationItem>
-            ) : (
-              <PaginationItem key={p}>
-                <PaginationLink
+      {totalPages > 1 && (
+        <div className="flex justify-center pt-4">
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
                   href="#"
-                  isActive={p === page}
                   onClick={(e) => {
                     e.preventDefault();
-                    setPage(p as number);
+                    setPage((p) => Math.max(1, p - 1));
                   }}
                   className="cursor-pointer"
-                >
-                  {p}
-                </PaginationLink>
+                />
               </PaginationItem>
-            )
-          )}
 
-          <PaginationItem>
-            <PaginationNext
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                setPage((p) => Math.min(totalPages, p + 1));
-              }}
-              className="cursor-pointer"
-            />
-          </PaginationItem>
-        </PaginationContent>
-      </Pagination>
+              {pageNumbers.map((p, idx) =>
+                p === "..." ? (
+                  <PaginationItem key={`ellipsis-${idx}`}>
+                    <PaginationEllipsis />
+                  </PaginationItem>
+                ) : (
+                  <PaginationItem key={p}>
+                    <PaginationLink
+                      href="#"
+                      isActive={p === page}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setPage(p as number);
+                      }}
+                      className="cursor-pointer"
+                    >
+                      {p}
+                    </PaginationLink>
+                  </PaginationItem>
+                )
+              )}
+
+              <PaginationItem>
+                <PaginationNext
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setPage((p) => Math.min(totalPages, p + 1));
+                  }}
+                  className="cursor-pointer"
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      )}
     </div>
   );
 }

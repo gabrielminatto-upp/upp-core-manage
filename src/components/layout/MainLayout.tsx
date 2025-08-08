@@ -14,8 +14,10 @@ export function MainLayout({ children }: MainLayoutProps) {
           <header className="h-16 border-b border-border bg-card flex items-center px-6">
             <SidebarTrigger />
           </header>
-          <main className="flex-1 p-6">
-            {children}
+          <main className="flex-1 p-6 overflow-auto">
+            <div className="max-w-7xl mx-auto">
+              {children}
+            </div>
           </main>
         </div>
       </div>
