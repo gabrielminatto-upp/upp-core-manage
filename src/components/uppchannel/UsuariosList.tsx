@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -7,7 +7,10 @@ import { User, Filter, Search, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useWorkflowStatus } from "@/hooks/use-workflow-status";
-import { registerWorkflowCallback, generateCallbackUrl } from "@/utils/workflow-callback";
+import {
+  registerWorkflowCallback,
+  generateCallbackUrl,
+} from "@/utils/workflow-callback";
 import {
   Table,
   TableBody,
@@ -48,55 +51,73 @@ const PAGE_SIZE = 12;
 
 export function UsuariosList() {
   const { toast } = useToast();
-  const { addExecution, updateExecutionStatus, pendingExecutions } = useWorkflowStatus();
+  const { addExecution, updateExecutionStatus, pendingExecutions } =
+    useWorkflowStatus();
   const [page, setPage] = useState(1);
   const [conta, setConta] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
+  const [processingStatus, setProcessingStatus] = useState<
+    "idle" | "processando" | "concluido"
+  >("idle");
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Função para chamar o webhook
   const handleUpdate = async () => {
     setIsUpdating(true);
+    setProcessingStatus("processando");
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      setProcessingStatus("concluido");
+    }, 40000);
     try {
       // Gerar um ID único para rastrear esta execução
-      const executionId = `update_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
+      const executionId = `update_${Date.now()}_${Math.random()
+        .toString(36)
+        .substr(2, 9)}`;
+
       // Adicionar à lista de execuções pendentes
       addExecution(executionId);
-      
+
       // Registrar callback para esta execução
       registerWorkflowCallback(executionId, (data) => {
         updateExecutionStatus(executionId, data.status, data.message);
       });
-      
-      const callbackUrl = generateCallbackUrl(executionId);
-      
-      const response = await fetch('https://integrations-crm.absolutatecnologia.com.br/webhook/58f482fd-bbd9-4668-8c80-e56cce154df6', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'update_usuarios',
-          execution_id: executionId,
-          callback_url: callbackUrl, // URL para callback
-          timestamp: new Date().toISOString(),
-        }),
-      });
 
-              if (response.ok) {
-          toast({
-            title: "Workflow iniciado!",
-            description: "Aguardando conclusão do processamento...",
-          });
-        } else {
-          throw new Error(`Erro ${response.status}: ${response.statusText}`);
+      const callbackUrl = generateCallbackUrl(executionId);
+
+      const response = await fetch(
+        "https://integrations-crm.absolutatecnologia.com.br/webhook/58f482fd-bbd9-4668-8c80-e56cce154df6",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            action: "update_usuarios",
+            execution_id: executionId,
+            callback_url: callbackUrl, // URL para callback
+            timestamp: new Date().toISOString(),
+          }),
         }
+      );
+
+      if (response.ok) {
+        toast({
+          title: "Workflow iniciado!",
+          description: "Aguardando conclusão do processamento...",
+        });
+      } else {
+        throw new Error(`Erro ${response.status}: ${response.statusText}`);
+      }
     } catch (error) {
-      console.error('Erro ao chamar webhook:', error);
+      console.error("Erro ao chamar webhook:", error);
       toast({
         title: "Erro ao atualizar",
-        description: error instanceof Error ? error.message : "Erro desconhecido ao chamar webhook.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Erro desconhecido ao chamar webhook.",
         variant: "destructive",
       });
     } finally {
@@ -104,13 +125,15 @@ export function UsuariosList() {
     }
   };
 
-
+  // Limpa o timer ao desmontar
+  React.useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   // Lista de contas/empresas (tipado)
-  const {
-    data: contas,
-    isLoading: contasLoading,
-  } = useQuery<string[]>({
+  const { data: contas, isLoading: contasLoading } = useQuery<string[]>({
     queryKey: ["contas_list"],
     queryFn: async (): Promise<string[]> => {
       const { data, error } = await supabase.rpc("contas_list");
@@ -132,12 +155,15 @@ export function UsuariosList() {
   });
 
   // Estatísticas (total e IDs únicos) — respeita o filtro de conta e pesquisa (tipado)
-  const {
-    data: stats,
-    isLoading: statsLoading,
-  } = useQuery<{ total: number; unique_uppchannel_ids: number }>({
+  const { data: stats, isLoading: statsLoading } = useQuery<{
+    total: number;
+    unique_uppchannel_ids: number;
+  }>({
     queryKey: ["usuarios_stats", conta, searchTerm],
-    queryFn: async (): Promise<{ total: number; unique_uppchannel_ids: number }> => {
+    queryFn: async (): Promise<{
+      total: number;
+      unique_uppchannel_ids: number;
+    }> => {
       // Se há termo de pesquisa, usar a contagem da query principal
       if (searchTerm.trim()) {
         // Fazer uma query para contar com os filtros aplicados
@@ -175,7 +201,9 @@ export function UsuariosList() {
 
         // Contar IDs Uppchannel únicos
         const uniqueUppchannelIdSet = new Set(
-          (uniqueIds || []).map((u: any) => u.iduppchannel).filter((id: string | null) => id !== null)
+          (uniqueIds || [])
+            .map((u: any) => u.iduppchannel)
+            .filter((id: string | null) => id !== null)
         );
 
         return {
@@ -189,10 +217,12 @@ export function UsuariosList() {
         conta_filter: conta ?? null,
       });
       if (error) throw error;
-      const row =
-        (Array.isArray(data) && data.length > 0
-          ? data[0]
-          : { total: 0, unique_uppchannel_ids: 0 }) || { total: 0, unique_uppchannel_ids: 0 };
+      const row = (Array.isArray(data) && data.length > 0
+        ? data[0]
+        : { total: 0, unique_uppchannel_ids: 0 }) || {
+        total: 0,
+        unique_uppchannel_ids: 0,
+      };
       return row as { total: number; unique_uppchannel_ids: number };
     },
     meta: {
@@ -335,12 +365,30 @@ export function UsuariosList() {
           {/* Botão Atualizar */}
           <Button
             onClick={handleUpdate}
-            disabled={isUpdating || pendingExecutions.length > 0}
+            disabled={
+              isUpdating ||
+              pendingExecutions.length > 0 ||
+              processingStatus === "processando"
+            }
             className="w-full md:w-auto relative"
             size="sm"
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isUpdating ? 'animate-spin' : ''}`} />
-            {isUpdating ? 'Atualizando...' : pendingExecutions.length > 0 ? 'Processando...' : 'Atualizar'}
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${
+                isUpdating || processingStatus === "processando"
+                  ? "animate-spin"
+                  : ""
+              }`}
+            />
+            {processingStatus === "processando"
+              ? "Processando..."
+              : processingStatus === "concluido"
+              ? "Concluído!"
+              : isUpdating
+              ? "Atualizando..."
+              : pendingExecutions.length > 0
+              ? "Processando..."
+              : "Atualizar"}
             {pendingExecutions.length > 0 && (
               <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                 {pendingExecutions.length}
@@ -356,10 +404,7 @@ export function UsuariosList() {
                 Filtrar por conta/empresa
               </span>
             </label>
-            <Select
-              value={conta ?? "ALL"}
-              onValueChange={handleContaChange}
-            >
+            <Select value={conta ?? "ALL"} onValueChange={handleContaChange}>
               <SelectTrigger className="w-full h-9">
                 <SelectValue placeholder="Todas as contas" />
               </SelectTrigger>
@@ -406,7 +451,8 @@ export function UsuariosList() {
         </div>
         {searchTerm && (
           <p className="text-xs text-muted-foreground mt-1">
-            Pesquisando por: "{searchTerm}" (nome, email, conta ou ID Uppchannel)
+            Pesquisando por: "{searchTerm}" (nome, email, conta ou ID
+            Uppchannel)
           </p>
         )}
       </div>
@@ -415,7 +461,9 @@ export function UsuariosList() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Card className="shadow-card">
           <CardContent className="p-5">
-            <p className="text-sm text-muted-foreground mb-3">Total de usuários</p>
+            <p className="text-sm text-muted-foreground mb-3">
+              Total de usuários
+            </p>
             {statsLoading ? (
               <Skeleton className="h-8 w-20" />
             ) : (
@@ -527,7 +575,10 @@ export function UsuariosList() {
                     {usuario.conta ?? "-"}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={getTipoBadgeVariant(usuario.tipo)} className="text-xs">
+                    <Badge
+                      variant={getTipoBadgeVariant(usuario.tipo)}
+                      className="text-xs"
+                    >
                       {usuario.tipo}
                     </Badge>
                   </TableCell>
