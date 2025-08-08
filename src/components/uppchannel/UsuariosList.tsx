@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -31,7 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 
 interface Usuario {
   nome: string;
@@ -48,13 +47,13 @@ export function UsuariosList() {
   const [page, setPage] = useState(1);
   const [conta, setConta] = useState<string | null>(null);
 
-  // Lista de contas/empresas
+  // Lista de contas/empresas (tipado)
   const {
     data: contas,
     isLoading: contasLoading,
-  } = useQuery({
+  } = useQuery<string[]>({
     queryKey: ["contas_list"],
-    queryFn: async () => {
+    queryFn: async (): Promise<string[]> => {
       const { data, error } = await supabase.rpc("contas_list");
       if (error) throw error;
       const contasList = (data || [])
@@ -73,13 +72,13 @@ export function UsuariosList() {
     },
   });
 
-  // Estatísticas (total e e-mails únicos) — respeita o filtro de conta
+  // Estatísticas (total e e-mails únicos) — respeita o filtro de conta (tipado)
   const {
     data: stats,
     isLoading: statsLoading,
-  } = useQuery({
+  } = useQuery<{ total: number; unique_emails: number }>({
     queryKey: ["usuarios_stats", conta],
-    queryFn: async () => {
+    queryFn: async (): Promise<{ total: number; unique_emails: number }> => {
       const { data, error } = await supabase.rpc("usuarios_stats", {
         conta_filter: conta ?? null,
       });
@@ -101,14 +100,14 @@ export function UsuariosList() {
     },
   });
 
-  // Usuários paginados — respeita o filtro de conta
+  // Usuários paginados — respeita o filtro de conta (tipado + keepPreviousData v5)
   const {
     data: usuariosData,
     isLoading: usuariosLoading,
     isFetching: usuariosFetching,
-  } = useQuery({
+  } = useQuery<{ rows: Usuario[]; count: number }>({
     queryKey: ["usuarios", conta, page, PAGE_SIZE],
-    queryFn: async () => {
+    queryFn: async (): Promise<{ rows: Usuario[]; count: number }> => {
       const from = (page - 1) * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
       let query = supabase
@@ -128,7 +127,8 @@ export function UsuariosList() {
         count: count || 0,
       };
     },
-    keepPreviousData: true,
+    // React Query v5: usar placeholderData: keepPreviousData
+    placeholderData: keepPreviousData,
     meta: {
       onError: (err: any) => {
         toast({
