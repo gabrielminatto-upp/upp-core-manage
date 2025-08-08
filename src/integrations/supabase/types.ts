@@ -67,7 +67,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      contas_list: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          conta: string
+        }[]
+      }
+      usuarios_stats: {
+        Args: { conta_filter?: string }
+        Returns: {
+          total: number
+          unique_emails: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
