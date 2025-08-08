@@ -102,7 +102,7 @@ export function UsuariosList() {
 
   // Usuários paginados — respeita o filtro de conta (tipado + keepPreviousData v5)
   const {
-    data: usuariosData,
+    data: usuariosData = { rows: [], count: 0 },
     isLoading: usuariosLoading,
     isFetching: usuariosFetching,
   } = useQuery<{ rows: Usuario[]; count: number }>({
