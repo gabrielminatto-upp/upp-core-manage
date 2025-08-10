@@ -184,7 +184,7 @@ export function UsuariosList() {
 
         const searchLower = searchTerm.toLowerCase().trim();
         query = query.or(
-          `nome.ilike.%${searchLower}%,email.ilike.%${searchLower}%,conta.ilike.%${searchLower}%,iduppchannel.ilike.%${searchLower}%`
+          `nome.ilike.%${searchLower}%,email.ilike.%${searchLower}%,conta.ilike.%${searchLower}%,iduppchannel.ilike.%${searchLower}%,idUppchannel.ilike.%${searchLower}%`
         );
 
         const { count, error } = await query;
@@ -193,14 +193,14 @@ export function UsuariosList() {
         // Para IDs Uppchannel únicos com pesquisa, fazer uma query separada
         let uniqueQuery = supabase
           .from("usuarios")
-          .select("iduppchannel", { count: "exact" });
+          .select("iduppchannel,idUppchannel", { count: "exact" });
 
         if (conta) {
           uniqueQuery = uniqueQuery.eq("conta", conta);
         }
 
         uniqueQuery = uniqueQuery.or(
-          `nome.ilike.%${searchLower}%,email.ilike.%${searchLower}%,conta.ilike.%${searchLower}%,iduppchannel.ilike.%${searchLower}%`
+          `nome.ilike.%${searchLower}%,email.ilike.%${searchLower}%,conta.ilike.%${searchLower}%,iduppchannel.ilike.%${searchLower}%,idUppchannel.ilike.%${searchLower}%`
         );
 
         const { data: uniqueIds, error: uniqueError } = await uniqueQuery;
@@ -209,7 +209,7 @@ export function UsuariosList() {
         // Contar IDs Uppchannel únicos
         const uniqueUppchannelIdSet = new Set(
           (uniqueIds || [])
-            .map((u: any) => u.iduppchannel)
+            .map((u: any) => u.iduppchannel ?? (u as any).idUppchannel ?? null)
             .filter((id: string | null) => id !== null)
         );
 
@@ -266,7 +266,7 @@ export function UsuariosList() {
       if (searchTerm.trim()) {
         const searchLower = searchTerm.toLowerCase().trim();
         query = query.or(
-          `nome.ilike.%${searchLower}%,email.ilike.%${searchLower}%,conta.ilike.%${searchLower}%,iduppchannel.ilike.%${searchLower}%`
+          `nome.ilike.%${searchLower}%,email.ilike.%${searchLower}%,conta.ilike.%${searchLower}%,iduppchannel.ilike.%${searchLower}%,idUppchannel.ilike.%${searchLower}%`
         );
       }
 
@@ -576,7 +576,7 @@ export function UsuariosList() {
                     {usuario.email}
                   </TableCell>
                   <TableCell className="text-muted-foreground font-mono text-sm">
-                    {usuario.iduppchannel ?? "-"}
+                    {usuario.iduppchannel ?? (usuario as any).idUppchannel ?? "-"}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {usuario.conta ?? "-"}
