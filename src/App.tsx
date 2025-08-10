@@ -4,13 +4,16 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
-import Index from "./pages/Index";
-import Uppchannel from "./pages/Uppchannel";
-import Upphone from "./pages/Upphone";
-import NotFound from "./pages/NotFound";
-import WorkflowCallback from "./pages/WorkflowCallback";
+import { Suspense, lazy } from "react";
 
 const queryClient = new QueryClient();
+
+// Substituir imports estáticos por lazy loading
+const Index = lazy(() => import("./pages/Index"));
+const Uppchannel = lazy(() => import("./pages/Uppchannel"));
+const Upphone = lazy(() => import("./pages/Upphone"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const WorkflowCallback = lazy(() => import("./pages/WorkflowCallback"));
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -19,13 +22,18 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <MainLayout>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/uppchannel" element={<Uppchannel />} />
-            <Route path="/upphone" element={<Upphone />} />
-            <Route path="/api/workflow-callback/:executionId" element={<WorkflowCallback />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <Suspense fallback={<div>Carregando página...</div>}>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/uppchannel" element={<Uppchannel />} />
+              <Route path="/upphone" element={<Upphone />} />
+              <Route
+                path="/api/workflow-callback/:executionId"
+                element={<WorkflowCallback />}
+              />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
         </MainLayout>
       </BrowserRouter>
     </TooltipProvider>

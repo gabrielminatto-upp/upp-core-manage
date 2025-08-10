@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/select";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
+import * as XLSX from "xlsx";
 
 interface Usuario {
   nome: string;
@@ -50,7 +51,7 @@ interface Usuario {
 
 const PAGE_SIZE = 12;
 
-export function UsuariosList() {
+const UsuariosListComponent = function UsuariosList() {
   const { toast } = useToast();
   const { addExecution, updateExecutionStatus, pendingExecutions } =
     useWorkflowStatus();
@@ -128,6 +129,64 @@ export function UsuariosList() {
       });
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  // Função para buscar todos os usuários em lotes (acima de 1000)
+  async function fetchAllUsuarios() {
+    const pageSize = 1000;
+    let from = 0;
+    let to = pageSize - 1;
+    let allUsers: any[] = [];
+    let finished = false;
+    while (!finished) {
+      let query = supabase.from("usuarios").select("*", { count: "exact" });
+      if (conta) query = query.eq("conta", conta);
+      if (searchTerm.trim()) {
+        const searchLower = searchTerm.toLowerCase().trim();
+        query = query.or(
+          `nome.ilike.%${searchLower}%,email.ilike.%${searchLower}%,conta.ilike.%${searchLower}%,idUppchannel.ilike.%${searchLower}%`
+        );
+      }
+      const { data, error } = await query.range(from, to);
+      if (error) throw error;
+      allUsers = allUsers.concat(data || []);
+      if (!data || data.length < pageSize) finished = true;
+      from += pageSize;
+      to += pageSize;
+    }
+    return allUsers;
+  }
+
+  // Função para exportar todos os usuários para Excel
+  const handleExportExcel = async () => {
+    try {
+      const data = await fetchAllUsuarios();
+      if (!data || data.length === 0) {
+        toast({
+          title: "Nenhum usuário encontrado para exportar.",
+          variant: "destructive",
+        });
+        return;
+      }
+      // Monta os dados para exportação
+      const exportData = data.map((u: any) => ({
+        Nome: u.nome,
+        Email: u.email,
+        "ID Uppchannel": u.idUppchannel,
+        "Conta/Empresa": u.conta,
+        Tipo: u.tipo,
+      }));
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Usuários");
+      XLSX.writeFile(wb, "usuarios_uppchannel.xlsx");
+    } catch (err: any) {
+      toast({
+        title: "Erro ao exportar para Excel",
+        description: err?.message || "Tente novamente mais tarde.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -402,6 +461,14 @@ export function UsuariosList() {
               </span>
             )}
           </Button>
+          {/* Botão Exportar para Excel */}
+          <Button
+            onClick={handleExportExcel}
+            className="w-full md:w-auto"
+            size="sm"
+          >
+            Exportar para Excel
+          </Button>
 
           {/* Filtro por Conta */}
           <div className="w-full md:w-[280px]">
@@ -670,4 +737,6 @@ export function UsuariosList() {
       )}
     </div>
   );
-}
+};
+
+export const UsuariosList = React.memo(UsuariosListComponent);

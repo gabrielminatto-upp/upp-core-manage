@@ -1,7 +1,43 @@
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Users, Phone, Activity, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Bar } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title as ChartTitle,
+  Tooltip,
+  Legend,
+} from "chart.js";
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  ChartTitle,
+  Tooltip,
+  Legend
+);
+
+const atividadesRecentes = [
+  { id: 1, descricao: "Novo usuário cadastrado", data: "Hoje, 09:12" },
+  { id: 2, descricao: "Ramal 101 ativado", data: "Ontem, 17:44" },
+  {
+    id: 3,
+    descricao: "Permissão alterada para usuário Ana",
+    data: "Ontem, 15:20",
+  },
+  { id: 4, descricao: "Ramal 104 desativado", data: "Ontem, 10:05" },
+];
 
 interface DashboardStats {
   totalUsuarios: number;
@@ -25,24 +61,21 @@ export function Dashboard() {
 
   const fetchStats = async () => {
     try {
-      // Fetch usuarios stats
-      const { data: usuarios } = await supabase
-        .from('usuarios')
-        .select('*');
+      // Buscar apenas a contagem de usuários
+      const { count: totalUsuarios } = await supabase
+        .from("usuarios")
+        .select("*", { count: "exact", head: true });
 
-      // Fetch ramais stats  
-      const { data: ramais } = await supabase
-        .from('ramais')
-        .select('*');
+      // Buscar ramais normalmente
+      const { data: ramais } = await supabase.from("ramais").select("*");
 
       setStats({
-        totalUsuarios: usuarios?.length || 0,
-        usuariosAtivos: usuarios?.length || 0, // All users are considered active for now
+        totalUsuarios: totalUsuarios || 0,
         totalRamais: ramais?.length || 0,
-        ramaisAtivos: ramais?.filter(r => r.status)?.length || 0,
+        ramaisAtivos: ramais?.filter((r) => r.status)?.length || 0,
       });
     } catch (error) {
-      console.error('Error fetching stats:', error);
+      console.error("Error fetching stats:", error);
     } finally {
       setIsLoading(false);
     }
@@ -55,13 +88,6 @@ export function Dashboard() {
       value: stats.totalUsuarios,
       icon: Users,
       gradient: "bg-gradient-to-br from-blue-500 to-blue-600",
-    },
-    {
-      title: "Usuários Ativos",
-      description: "Online agora",
-      value: stats.usuariosAtivos,
-      icon: Activity,
-      gradient: "bg-gradient-to-br from-green-500 to-green-600",
     },
     {
       title: "Total de Ramais",
@@ -99,6 +125,34 @@ export function Dashboard() {
     );
   }
 
+  // Gráfico de barras: Usuários x Ramais (apenas total)
+  const barData = {
+    labels: ["Usuários", "Ramais"],
+    datasets: [
+      {
+        label: "Total",
+        data: [stats.totalUsuarios, stats.totalRamais],
+        backgroundColor: ["#3b82f6", "#a78bfa"],
+        borderRadius: 6,
+      },
+    ],
+  };
+  const barOptions = {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      title: { display: false },
+    },
+    scales: {
+      x: { grid: { color: "#23272f" }, ticks: { color: "#fff" } },
+      y: {
+        grid: { color: "#23272f" },
+        ticks: { color: "#fff" },
+        beginAtZero: true,
+      },
+    },
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -110,12 +164,17 @@ export function Dashboard() {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {dashboardCards.map((card, index) => (
-          <Card key={index} className="shadow-card hover:shadow-elevated transition-shadow duration-200">
+          <Card
+            key={index}
+            className="shadow-card hover:shadow-elevated transition-shadow duration-200"
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 {card.title}
               </CardTitle>
-              <div className={`h-8 w-8 rounded-md ${card.gradient} flex items-center justify-center`}>
+              <div
+                className={`h-8 w-8 rounded-md ${card.gradient} flex items-center justify-center`}
+              >
                 <card.icon className="h-4 w-4 text-white" />
               </div>
             </CardHeader>
@@ -131,6 +190,56 @@ export function Dashboard() {
         ))}
       </div>
 
+      {/* Gráfico e Atividades Recentes */}
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card className="shadow-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5 text-primary" />
+              Visão Geral
+            </CardTitle>
+            <CardDescription>
+              Comparativo entre usuários e ramais cadastrados e ativos.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64">
+              <Bar data={barData} options={barOptions} />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              Atividades Recentes
+            </CardTitle>
+            <CardDescription>
+              Últimas ações realizadas no sistema.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-3">
+              {atividadesRecentes.map((item) => (
+                <li
+                  key={item.id}
+                  className="flex items-center justify-between border-b border-muted pb-2 last:border-b-0 last:pb-0"
+                >
+                  <span className="text-sm text-foreground">
+                    {item.descricao}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {item.data}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Cards de descrição dos sistemas */}
       <div className="grid gap-6 md:grid-cols-2">
         <Card className="shadow-card">
           <CardHeader>
@@ -144,8 +253,9 @@ export function Dashboard() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              Gerencie usuários, tipos de conta e permissões do sistema Uppchannel.
-              Controle total sobre admins, atendentes e supervisores.
+              Gerencie usuários, tipos de conta e permissões do sistema
+              Uppchannel. Controle total sobre admins, atendentes e
+              supervisores.
             </p>
           </CardContent>
         </Card>
@@ -162,8 +272,8 @@ export function Dashboard() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              Administre ramais, centrais telefônicas e configurações do Upphone.
-              Monitore status e gerencie distribuição de chamadas.
+              Administre ramais, centrais telefônicas e configurações do
+              Upphone. Monitore status e gerencie distribuição de chamadas.
             </p>
           </CardContent>
         </Card>

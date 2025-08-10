@@ -1,10 +1,17 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Phone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import React from "react";
 
 interface Ramal {
   id: string;
@@ -14,7 +21,7 @@ interface Ramal {
   central: string;
 }
 
-export function RamaisList() {
+const RamaisListComponent = function RamaisList() {
   const [ramais, setRamais] = useState<Ramal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
@@ -27,9 +34,9 @@ export function RamaisList() {
     try {
       setIsLoading(true);
       const { data, error } = await supabase
-        .from('ramais')
-        .select('*')
-        .order('nome', { ascending: true });
+        .from("ramais")
+        .select("*")
+        .order("nome", { ascending: true });
 
       if (error) throw error;
       setRamais(data || []);
@@ -72,7 +79,10 @@ export function RamaisList() {
       ) : ramais.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {ramais.map((ramal) => (
-            <Card key={ramal.id} className="shadow-card hover:shadow-card-hover transition-shadow">
+            <Card
+              key={ramal.id}
+              className="shadow-card hover:shadow-card-hover transition-shadow"
+            >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2">
@@ -88,20 +98,26 @@ export function RamaisList() {
               <CardContent>
                 <div className="space-y-3">
                   <div>
-                    <p className="text-sm font-medium text-foreground">Descrição/Cliente</p>
+                    <p className="text-sm font-medium text-foreground">
+                      Descrição/Cliente
+                    </p>
                     <p className="text-sm text-muted-foreground">
                       {ramal.descricao_cliente || "Não informado"}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-foreground">Central</p>
+                    <p className="text-sm font-medium text-foreground">
+                      Central
+                    </p>
                     <p className="text-sm text-muted-foreground">
                       {ramal.central}
                     </p>
                   </div>
                   <div className="flex items-center justify-between pt-2">
                     <div className="flex items-center space-x-2">
-                      <span className="text-sm text-muted-foreground">Status: {ramal.status ? "Ativo" : "Inativo"}</span>
+                      <span className="text-sm text-muted-foreground">
+                        Status: {ramal.status ? "Ativo" : "Inativo"}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -124,4 +140,6 @@ export function RamaisList() {
       )}
     </div>
   );
-}
+};
+
+export const RamaisList = React.memo(RamaisListComponent);

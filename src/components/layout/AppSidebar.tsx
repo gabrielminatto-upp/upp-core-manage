@@ -15,23 +15,23 @@ import {
 import uppLogo from "@/assets/upp-logo.png";
 
 const navigationItems = [
-  { 
-    title: "Dashboard", 
-    url: "/", 
+  {
+    title: "Dashboard",
+    url: "/",
     icon: BarChart3,
-    description: "Visão geral"
+    description: "Visão geral",
   },
-  { 
-    title: "Uppchannel", 
-    url: "/uppchannel", 
+  {
+    title: "Uppchannel",
+    url: "/uppchannel",
     icon: Users,
-    description: "Consulta de usuários"
+    description: "Consulta de usuários",
   },
-  { 
-    title: "Upphone", 
-    url: "/upphone", 
+  {
+    title: "Upphone",
+    url: "/upphone",
     icon: Phone,
-    description: "Consulta de ramais"
+    description: "Consulta de ramais",
   },
 ];
 
@@ -48,8 +48,8 @@ export function AppSidebar() {
   };
 
   const getNavClass = (path: string) => {
-    return isActive(path) 
-      ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium shadow-lg" 
+    return isActive(path)
+      ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium shadow-lg"
       : "hover:bg-sidebar-accent/50 hover:shadow-lg transition-all duration-200";
   };
 
@@ -58,30 +58,39 @@ export function AppSidebar() {
       <SidebarHeader className="border-b border-sidebar-border p-4">
         <div className="flex items-center gap-3">
           <div className="flex-shrink-0 flex items-center justify-center min-w-[48px] min-h-[48px]">
-            <img 
-              src={uppLogo} 
-              alt="Upp Tecnologia" 
-              className="h-10 w-10 object-contain"
-              onLoad={() => console.log('Logo carregada com sucesso')}
-              onError={(e) => {
-                console.error('Erro ao carregar logo:', e);
-                console.log('Tentando fallback...');
-                e.currentTarget.style.display = 'none';
-                // Adicionar fallback de texto
-                const fallback = document.createElement('div');
-                fallback.className = 'text-black font-bold text-sm';
-                fallback.textContent = 'UPP';
-                e.currentTarget.parentNode?.appendChild(fallback);
-              }}
-            />
+            <picture>
+              <source srcSet={uppLogo} type="image/webp" />
+              <img
+                src={uppLogo}
+                alt="Upp Tecnologia"
+                className="h-10 w-10 object-contain"
+                loading="lazy"
+                onLoad={() => console.log("Logo carregada com sucesso")}
+                onError={(e) => {
+                  console.error("Erro ao carregar logo:", e);
+                  console.log("Tentando fallback...");
+                  e.currentTarget.style.display = "none";
+                  // Adicionar fallback de texto
+                  const fallback = document.createElement("div");
+                  fallback.className = "text-black font-bold text-sm";
+                  fallback.textContent = "UPP";
+                  e.currentTarget.parentNode?.appendChild(fallback);
+                }}
+              />
+            </picture>
             {/* Fallback visual caso a imagem não carregue */}
-            <div className="text-black font-bold text-sm absolute" style={{ display: 'none' }}>
+            <div
+              className="text-black font-bold text-sm absolute"
+              style={{ display: "none" }}
+            >
               UPP
             </div>
           </div>
           {!collapsed && (
             <div>
-              <h2 className="font-semibold text-sidebar-foreground">Upp Portal</h2>
+              <h2 className="font-semibold text-sidebar-foreground">
+                Upp Portal
+              </h2>
               <p className="text-xs text-sidebar-foreground/60">Consultas</p>
             </div>
           )}
@@ -98,16 +107,20 @@ export function AppSidebar() {
               {navigationItems.map((item) => (
                 <SidebarMenuItem key={item.title} className="my-2">
                   <SidebarMenuButton asChild>
-                    <NavLink 
-                      to={item.url} 
+                    <NavLink
+                      to={item.url}
                       className={`${getNavClass(item.url)} p-4 hover:p-6`}
                       title={collapsed ? item.title : undefined}
                     >
                       <item.icon className="h-4 w-4 shrink-0" />
                       {!collapsed && (
                         <div className="flex flex-col">
-                          <span className="text-sm font-medium">{item.title}</span>
-                          <span className="text-xs opacity-60">{item.description}</span>
+                          <span className="text-sm font-medium">
+                            {item.title}
+                          </span>
+                          <span className="text-xs opacity-60">
+                            {item.description}
+                          </span>
                         </div>
                       )}
                     </NavLink>
