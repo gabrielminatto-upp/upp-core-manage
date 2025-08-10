@@ -40,27 +40,30 @@ export type Database = {
       }
       usuarios: {
         Row: {
-          conta: string | null
-          email: string
-          id: string
-          iduppchannel: string | null
+          conta: string
+          email: string | null
+          idsupa: string
+          idUppchannel: string
           nome: string
+          phone: string | null
           tipo: string
         }
         Insert: {
-          conta?: string | null
-          email: string
-          id?: string
-          iduppchannel?: string | null
+          conta: string
+          email?: string | null
+          idsupa?: string
+          idUppchannel: string
           nome: string
+          phone?: string | null
           tipo: string
         }
         Update: {
-          conta?: string | null
-          email?: string
-          id?: string
-          iduppchannel?: string | null
+          conta?: string
+          email?: string | null
+          idsupa?: string
+          idUppchannel?: string
           nome?: string
+          phone?: string | null
           tipo?: string
         }
         Relationships: []
@@ -80,7 +83,7 @@ export type Database = {
         Args: { conta_filter?: string }
         Returns: {
           total: number
-          unique_uppchannel_ids: number
+          unique_emails: number
         }[]
       }
     }
