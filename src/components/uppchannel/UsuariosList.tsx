@@ -45,7 +45,7 @@ interface Usuario {
   iduppchannel?: string | null;
 }
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE_OPTIONS = [1, 10, 100, "Todos"] as const;
 
 const UsuariosListComponent = function UsuariosList() {
   const { toast } = useToast();
@@ -58,6 +58,7 @@ const UsuariosListComponent = function UsuariosList() {
   const [processingStatus, setProcessingStatus] = useState<
     "idle" | "processando" | "concluido"
   >("idle");
+  const [pageSize, setPageSize] = useState<number | "Todos">(12);
 
   // Função para chamar o webhook
   const handleUpdate = async () => {
@@ -310,10 +311,17 @@ const UsuariosListComponent = function UsuariosList() {
     isLoading: usuariosLoading,
     isFetching: usuariosFetching,
   } = useQuery<{ rows: Usuario[]; count: number }>({
-    queryKey: ["usuarios", conta, searchTerm, page, PAGE_SIZE],
+    queryKey: ["usuarios", conta, searchTerm, page, pageSize],
     queryFn: async (): Promise<{ rows: Usuario[]; count: number }> => {
-      const from = (page - 1) * PAGE_SIZE;
-      const to = from + PAGE_SIZE - 1;
+      let from = 0;
+      let to = 0;
+      if (pageSize === "Todos") {
+        from = 0;
+        to = 99999; // Limite alto para "Todos"
+      } else {
+        from = (page - 1) * (pageSize as number);
+        to = from + (pageSize as number) - 1;
+      }
       let query = supabase
         .from("usuarios")
         .select("*", { count: "exact" })
@@ -354,8 +362,8 @@ const UsuariosListComponent = function UsuariosList() {
 
   const totalCount = usuariosData?.count ?? 0;
   const totalPages = useMemo(
-    () => Math.max(1, Math.ceil(totalCount / PAGE_SIZE)),
-    [totalCount]
+    () => pageSize === "Todos" ? 1 : Math.max(1, Math.ceil(totalCount / (pageSize as number))),
+    [totalCount, pageSize]
   );
 
   // Reseta para a primeira página quando o filtro muda
@@ -409,12 +417,12 @@ const UsuariosListComponent = function UsuariosList() {
   }, [page, totalPages]);
 
   const showingFrom = useMemo(
-    () => (totalCount === 0 ? 0 : (page - 1) * PAGE_SIZE + 1),
-    [page, totalCount]
+    () => (totalCount === 0 ? 0 : (page - 1) * (pageSize as number) + 1),
+    [page, totalCount, pageSize]
   );
   const showingTo = useMemo(
-    () => Math.min(page * PAGE_SIZE, totalCount),
-    [page, totalCount]
+    () => Math.min(page * (pageSize as number), totalCount),
+    [page, totalCount, pageSize]
   );
 
   return (
@@ -504,33 +512,33 @@ const UsuariosListComponent = function UsuariosList() {
               </SelectContent>
             </Select>
           </div>
-        </div>
-      </div>
 
-      {/* Barra de Pesquisa */}
-      <div className="w-full max-w-2xl">
-        <label className="mb-2 block text-sm font-medium text-foreground">
-          <span className="inline-flex items-center gap-2">
-            <Search className="h-4 w-4 text-muted-foreground" />
-            Pesquisar usuários
-          </span>
-        </label>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Pesquisar por nome, email, conta ou ID Uppchannel..."
-            value={searchTerm}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            className="pl-10 h-10"
-          />
+          {/* Barra de Pesquisa */}
+          <div className="w-full max-w-2xl">
+            <label className="mb-2 block text-sm font-medium text-foreground">
+              <span className="inline-flex items-center gap-2">
+                <Search className="h-4 w-4 text-muted-foreground" />
+                Pesquisar usuários
+              </span>
+            </label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Pesquisar por nome, email, conta ou ID Uppchannel..."
+                value={searchTerm}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                className="pl-10 h-10"
+              />
+            </div>
+            {searchTerm && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Pesquisando por: "{searchTerm}" (nome, email, conta ou ID
+                Uppchannel)
+              </p>
+            )}
+          </div>
         </div>
-        {searchTerm && (
-          <p className="text-xs text-muted-foreground mt-1">
-            Pesquisando por: "{searchTerm}" (nome, email, conta ou ID
-            Uppchannel)
-          </p>
-        )}
       </div>
 
       {/* Métricas */}
@@ -558,7 +566,6 @@ const UsuariosListComponent = function UsuariosList() {
             )}
           </CardContent>
         </Card>
-
         <Card className="shadow-card">
           <CardContent className="p-5">
             <p className="text-sm text-muted-foreground mb-3">
@@ -576,7 +583,6 @@ const UsuariosListComponent = function UsuariosList() {
             </p>
           </CardContent>
         </Card>
-
         <Card className="shadow-card">
           <CardContent className="p-5">
             <p className="text-sm text-muted-foreground mb-3">
@@ -594,6 +600,22 @@ const UsuariosListComponent = function UsuariosList() {
             </p>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Seletor de quantidade por página */}
+      <div className="flex items-center gap-2 mb-2 mt-2">
+        <span className="text-sm">Mostrar:</span>
+        <Select value={String(pageSize)} onValueChange={v => { setPageSize(v === "Todos" ? "Todos" : Number(v)); setPage(1); }}>
+          <SelectTrigger className="w-24 h-8">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {PAGE_SIZE_OPTIONS.map(opt => (
+              <SelectItem key={opt} value={String(opt)}>{opt}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <span className="text-sm">por página</span>
       </div>
 
       {/* Tabela */}
@@ -688,7 +710,7 @@ const UsuariosListComponent = function UsuariosList() {
       </div>
 
       {/* Paginação */}
-      {totalPages > 1 && (
+      {totalPages > 1 && pageSize !== "Todos" && (
         <div className="flex justify-center pt-4">
           <Pagination>
             <PaginationContent>

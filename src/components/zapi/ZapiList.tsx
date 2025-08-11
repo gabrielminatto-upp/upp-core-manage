@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Filter, Search, RefreshCw } from "lucide-react";
+import { MessageSquare, Filter, Search, RefreshCw, ArrowUp, ArrowDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useWorkflowStatus } from "@/hooks/use-workflow-status";
@@ -40,25 +40,27 @@ import * as XLSX from "xlsx";
 interface ZapiItem {
   id: string;
   nome: string;
-  data_criacao: string;
-  status_pagamento: string;
-  meio: string;
-  conectado: boolean;
+  criacao: string;
+  paymentStatus: string;
+  middleware: string;
+  phoneConnected: boolean;
 }
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE_OPTIONS = [1, 10, 100, "Todos"] as const;
 
 const ZapiListComponent = function ZapiList() {
   const { toast } = useToast();
-  const { addExecution, updateExecutionStatus, pendingExecutions } =
-    useWorkflowStatus();
+  const { addExecution, updateExecutionStatus, pendingExecutions } = useWorkflowStatus();
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
-  const [processingStatus, setProcessingStatus] = useState<
-    "idle" | "processando" | "concluido"
-  >("idle");
+  const [processingStatus, setProcessingStatus] = useState<"idle" | "processando" | "concluido">("idle");
+  const [orderBy, setOrderBy] = useState<keyof ZapiItem>("nome");
+  const [orderDir, setOrderDir] = useState<"asc" | "desc">("asc");
+  const [pageSize, setPageSize] = useState<number | "Todos">(10);
+  const timerRef = React.useRef<NodeJS.Timeout | null>(null);
+  const doneTimerRef = React.useRef<NodeJS.Timeout | null>(null);
 
   // Função para chamar o webhook
   const handleUpdate = async () => {
@@ -143,12 +145,12 @@ const ZapiListComponent = function ZapiList() {
     let allData: any[] = [];
     let finished = false;
     while (!finished) {
-      let query = supabase.from("z-api").select("*", { count: "exact" });
-      if (statusFilter) query = query.eq("status_pagamento", statusFilter);
+      let query = supabase.from("z-api").select("id, nome, criacao, paymentStatus, middleware, phoneConnected", { count: "exact" });
+      if (statusFilter) query = query.eq("paymentStatus", statusFilter);
       if (searchTerm.trim()) {
         const searchLower = searchTerm.toLowerCase().trim();
         query = query.or(
-          `nome.ilike.%${searchLower}%,meio.ilike.%${searchLower}%`
+          `nome.ilike.%${searchLower}%,middleware.ilike.%${searchLower}%`
         );
       }
       const { data, error } = await query.range(from, to);
@@ -176,10 +178,10 @@ const ZapiListComponent = function ZapiList() {
       const exportData = data.map((item: any) => ({
         ID: item.id,
         Nome: item.nome,
-        "Data de Criação": new Date(item.data_criacao).toLocaleDateString('pt-BR'),
-        "Status de Pagamento": item.status_pagamento,
-        Meio: item.meio,
-        Conectado: item.conectado ? "Sim" : "Não",
+        "Data de Criação": new Date(item.criacao).toLocaleDateString('pt-BR'),
+        "Status de Pagamento": item.paymentStatus,
+        Meio: item.middleware,
+        Conectado: item.phoneConnected ? "Sim" : "Não",
       }));
       const ws = XLSX.utils.json_to_sheet(exportData);
       const wb = XLSX.utils.book_new();
@@ -200,10 +202,10 @@ const ZapiListComponent = function ZapiList() {
     queryFn: async (): Promise<string[]> => {
       const { data, error } = await supabase
         .from("z-api")
-        .select("status_pagamento")
-        .not("status_pagamento", "is", null);
+        .select("paymentStatus")
+        .not("paymentStatus", "is", null);
       if (error) throw error;
-      const statusList = [...new Set((data || []).map((r: any) => r.status_pagamento))];
+      const statusList = [...new Set((data || []).map((r: any) => r.paymentStatus))];
       return statusList.filter((s): s is string => s !== null);
     },
     meta: {
@@ -229,16 +231,16 @@ const ZapiListComponent = function ZapiList() {
       conectados: number;
       desconectados: number;
     }> => {
-      let query = supabase.from("z-api").select("*", { count: "exact" });
+      let query = supabase.from("z-api").select("id, nome, criacao, paymentStatus, middleware, phoneConnected", { count: "exact" });
 
       if (statusFilter) {
-        query = query.eq("status_pagamento", statusFilter);
+        query = query.eq("paymentStatus", statusFilter);
       }
 
       if (searchTerm.trim()) {
         const searchLower = searchTerm.toLowerCase().trim();
         query = query.or(
-          `nome.ilike.%${searchLower}%,meio.ilike.%${searchLower}%`
+          `nome.ilike.%${searchLower}%,middleware.ilike.%${searchLower}%`
         );
       }
 
@@ -246,7 +248,7 @@ const ZapiListComponent = function ZapiList() {
       if (error) throw error;
 
       const total = data?.length || 0;
-      const conectados = data?.filter((item: any) => item.conectado).length || 0;
+      const conectados = data?.filter((item: any) => item.phoneConnected).length || 0;
       const desconectados = total - conectados;
 
       return {
@@ -272,23 +274,30 @@ const ZapiListComponent = function ZapiList() {
     isLoading: zapiLoading,
     isFetching: zapiFetching,
   } = useQuery<{ rows: ZapiItem[]; count: number }>({
-    queryKey: ["zapi", statusFilter, searchTerm, page, PAGE_SIZE],
+    queryKey: ["z-api", statusFilter, searchTerm, page, pageSize, orderBy, orderDir],
     queryFn: async (): Promise<{ rows: ZapiItem[]; count: number }> => {
-      const from = (page - 1) * PAGE_SIZE;
-      const to = from + PAGE_SIZE - 1;
+      let from = 0;
+      let to = 0;
+      if (pageSize === "Todos") {
+        from = 0;
+        to = 99999; // Limite alto para "Todos"
+      } else {
+        from = (page - 1) * (pageSize as number);
+        to = from + (pageSize as number) - 1;
+      }
       let query = supabase
         .from("z-api")
-        .select("*", { count: "exact" })
-        .order("nome", { ascending: true });
+        .select("id, nome, criacao, paymentStatus, middleware, phoneConnected", { count: "exact" })
+        .order(orderBy, { ascending: orderDir === "asc" });
 
       if (statusFilter) {
-        query = query.eq("status_pagamento", statusFilter);
+        query = query.eq("paymentStatus", statusFilter);
       }
 
       if (searchTerm.trim()) {
         const searchLower = searchTerm.toLowerCase().trim();
         query = query.or(
-          `nome.ilike.%${searchLower}%,meio.ilike.%${searchLower}%`
+          `nome.ilike.%${searchLower}%,middleware.ilike.%${searchLower}%`
         );
       }
 
@@ -314,8 +323,8 @@ const ZapiListComponent = function ZapiList() {
 
   const totalCount = zapiData?.count ?? 0;
   const totalPages = useMemo(
-    () => Math.max(1, Math.ceil(totalCount / PAGE_SIZE)),
-    [totalCount]
+    () => pageSize === "Todos" ? 1 : Math.max(1, Math.ceil(totalCount / (pageSize as number))),
+    [totalCount, pageSize]
   );
 
   // Reseta para a primeira página quando o filtro muda
@@ -327,6 +336,17 @@ const ZapiListComponent = function ZapiList() {
   // Função para lidar com mudanças na pesquisa
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
+    setPage(1);
+  };
+
+  // Função para lidar com clique no cabeçalho
+  const handleSort = (col: keyof ZapiItem) => {
+    if (orderBy === col) {
+      setOrderDir(orderDir === "asc" ? "desc" : "asc");
+    } else {
+      setOrderBy(col);
+      setOrderDir("asc");
+    }
     setPage(1);
   };
 
@@ -370,12 +390,12 @@ const ZapiListComponent = function ZapiList() {
   }, [page, totalPages]);
 
   const showingFrom = useMemo(
-    () => (totalCount === 0 ? 0 : (page - 1) * PAGE_SIZE + 1),
-    [page, totalCount]
+    () => (totalCount === 0 ? 0 : (page - 1) * PAGE_SIZE_OPTIONS.find(opt => opt === pageSize)?.value || 0 + 1),
+    [page, totalCount, pageSize]
   );
   const showingTo = useMemo(
-    () => Math.min(page * PAGE_SIZE, totalCount),
-    [page, totalCount]
+    () => Math.min(page * PAGE_SIZE_OPTIONS.find(opt => opt === pageSize)?.value || 0, totalCount),
+    [page, totalCount, pageSize]
   );
 
   return (
@@ -518,7 +538,6 @@ const ZapiListComponent = function ZapiList() {
             )}
           </CardContent>
         </Card>
-
         <Card className="shadow-card">
           <CardContent className="p-5">
             <p className="text-sm text-muted-foreground mb-3">
@@ -536,7 +555,6 @@ const ZapiListComponent = function ZapiList() {
             </p>
           </CardContent>
         </Card>
-
         <Card className="shadow-card">
           <CardContent className="p-5">
             <p className="text-sm text-muted-foreground mb-3">
@@ -554,7 +572,6 @@ const ZapiListComponent = function ZapiList() {
             </p>
           </CardContent>
         </Card>
-
         <Card className="shadow-card">
           <CardContent className="p-5">
             <p className="text-sm text-muted-foreground mb-3">
@@ -572,6 +589,22 @@ const ZapiListComponent = function ZapiList() {
             </p>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Seletor de quantidade por página */}
+      <div className="flex items-center gap-2 mb-2 mt-2">
+        <span className="text-sm">Mostrar:</span>
+        <Select value={String(pageSize)} onValueChange={v => { setPageSize(v === "Todos" ? "Todos" : Number(v)); setPage(1); }}>
+          <SelectTrigger className="w-24 h-8">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {PAGE_SIZE_OPTIONS.map(opt => (
+              <SelectItem key={opt} value={String(opt)}>{opt}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <span className="text-sm">por página</span>
       </div>
 
       {/* Tabela */}
@@ -597,12 +630,12 @@ const ZapiListComponent = function ZapiList() {
           </TableCaption>
           <TableHeader>
             <TableRow>
-              <TableHead>ID</TableHead>
-              <TableHead>Nome</TableHead>
-              <TableHead className="w-32">Data de Criação</TableHead>
-              <TableHead className="w-40">Status de Pagamento</TableHead>
-              <TableHead className="w-32">Meio</TableHead>
-              <TableHead className="w-24">Conectado</TableHead>
+              <TableHead className="cursor-pointer select-none" onClick={() => handleSort("id")}>ID {orderBy === "id" && (orderDir === "asc" ? <ArrowUp className="inline w-3 h-3" /> : <ArrowDown className="inline w-3 h-3" />)}</TableHead>
+              <TableHead className="cursor-pointer select-none" onClick={() => handleSort("nome")}>Nome {orderBy === "nome" && (orderDir === "asc" ? <ArrowUp className="inline w-3 h-3" /> : <ArrowDown className="inline w-3 h-3" />)}</TableHead>
+              <TableHead className="cursor-pointer select-none" onClick={() => handleSort("criacao")}>Criação {orderBy === "criacao" && (orderDir === "asc" ? <ArrowUp className="inline w-3 h-3" /> : <ArrowDown className="inline w-3 h-3" />)}</TableHead>
+              <TableHead className="cursor-pointer select-none" onClick={() => handleSort("paymentStatus")}>Status de Pagamento {orderBy === "paymentStatus" && (orderDir === "asc" ? <ArrowUp className="inline w-3 h-3" /> : <ArrowDown className="inline w-3 h-3" />)}</TableHead>
+              <TableHead className="cursor-pointer select-none" onClick={() => handleSort("middleware")}>Middleware {orderBy === "middleware" && (orderDir === "asc" ? <ArrowUp className="inline w-3 h-3" /> : <ArrowDown className="inline w-3 h-3" />)}</TableHead>
+              <TableHead className="cursor-pointer select-none" onClick={() => handleSort("phoneConnected")}>Conectado {orderBy === "phoneConnected" && (orderDir === "asc" ? <ArrowUp className="inline w-3 h-3" /> : <ArrowDown className="inline w-3 h-3" />)}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -624,25 +657,20 @@ const ZapiListComponent = function ZapiList() {
                     {item.nome}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {new Date(item.data_criacao).toLocaleDateString('pt-BR')}
+                    {item.criacao ? String(item.criacao) : "-"}
                   </TableCell>
                   <TableCell>
-                    <Badge
-                      variant={getStatusBadgeVariant(item.status_pagamento)}
-                      className="text-xs"
-                    >
-                      {item.status_pagamento}
-                    </Badge>
+                    {item.paymentStatus ? String(item.paymentStatus) : "-"}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {item.meio}
+                    {item.middleware ? String(item.middleware) : "-"}
                   </TableCell>
                   <TableCell>
                     <Badge
-                      variant={getConnectionBadgeVariant(item.conectado)}
+                      variant={getConnectionBadgeVariant(item.phoneConnected)}
                       className="text-xs"
                     >
-                      {item.conectado ? "Sim" : "Não"}
+                      {item.phoneConnected ? "Sim" : "Não"}
                     </Badge>
                   </TableCell>
                 </TableRow>
@@ -673,7 +701,7 @@ const ZapiListComponent = function ZapiList() {
       </div>
 
       {/* Paginação */}
-      {totalPages > 1 && (
+      {totalPages > 1 && pageSize !== "Todos" && (
         <div className="flex justify-center pt-4">
           <Pagination>
             <PaginationContent>
