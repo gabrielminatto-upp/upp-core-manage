@@ -43,6 +43,7 @@ interface Usuario {
   tipo: string;
   conta: string | null;
   iduppchannel?: string | null;
+  phone?: string | null;
 }
 
 const PAGE_SIZE_OPTIONS = [1, 10, 100, "Todos"] as const;
@@ -639,6 +640,7 @@ const UsuariosListComponent = function UsuariosList() {
               <TableHead>Email</TableHead>
               <TableHead className="w-32">ID Uppchannel</TableHead>
               <TableHead className="w-40">Conta/Empresa</TableHead>
+              <TableHead className="w-32">Telefone</TableHead>
               <TableHead className="w-24">Tipo</TableHead>
             </TableRow>
           </TableHeader>
@@ -646,7 +648,7 @@ const UsuariosListComponent = function UsuariosList() {
             {usuariosLoading && usuariosData?.rows?.length === 0 ? (
               Array.from({ length: 6 }).map((_, i) => (
                 <TableRow key={i}>
-                  <TableCell colSpan={5}>
+                  <TableCell colSpan={6}>
                     <Skeleton className="h-6 w-full" />
                   </TableCell>
                 </TableRow>
@@ -668,6 +670,9 @@ const UsuariosListComponent = function UsuariosList() {
                   <TableCell className="text-muted-foreground">
                     {usuario.conta ?? "-"}
                   </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {usuario.phone ?? "-"}
+                  </TableCell>
                   <TableCell>
                     <Badge
                       variant={getTipoBadgeVariant(usuario.tipo)}
@@ -680,7 +685,7 @@ const UsuariosListComponent = function UsuariosList() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={5}>
+                <TableCell colSpan={6}>
                   <div className="flex flex-col items-center justify-center py-12">
                     <User className="h-12 w-12 text-muted-foreground mb-4" />
                     <h3 className="text-lg font-semibold text-foreground mb-2">
