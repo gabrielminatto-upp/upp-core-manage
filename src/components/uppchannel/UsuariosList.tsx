@@ -193,13 +193,7 @@ const UsuariosListComponent = function UsuariosList() {
     }
   };
 
-  // Limpa o timer ao desmontar
-  React.useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-      if (doneTimerRef.current) clearTimeout(doneTimerRef.current);
-    };
-  }, []);
+  // Remover o useEffect de limpeza de timerRef e doneTimerRef
 
   // Lista de contas/empresas (tipado)
   const { data: contas, isLoading: contasLoading } = useQuery<string[]>({
