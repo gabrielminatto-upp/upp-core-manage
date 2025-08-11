@@ -12,6 +12,7 @@ const queryClient = new QueryClient();
 const Index = lazy(() => import("./pages/Index"));
 const Uppchannel = lazy(() => import("./pages/Uppchannel"));
 const Upphone = lazy(() => import("./pages/Upphone"));
+const Zapi = lazy(() => import("./pages/Zapi"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const WorkflowCallback = lazy(() => import("./pages/WorkflowCallback"));
 
@@ -27,6 +28,7 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/uppchannel" element={<Uppchannel />} />
               <Route path="/upphone" element={<Upphone />} />
+              <Route path="/zapi" element={<Zapi />} />
               <Route
                 path="/api/workflow-callback/:executionId"
                 element={<WorkflowCallback />}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams, useLocation } from 'react-router-dom';
-import { processWorkflowCallback } from '@/utils/workflow-callback';
+import { processWorkflowResponse } from '@/utils/workflow-callback';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
@@ -31,7 +31,6 @@ export default function WorkflowCallback() {
           data: searchParams.get('data') ? JSON.parse(searchParams.get('data') || '{}') : undefined,
         };
       }
-      
       // Para POST - dados vêm do body (simulado)
       return {
         execution_id: executionId,
@@ -44,9 +43,7 @@ export default function WorkflowCallback() {
     try {
       const callbackData = extractCallbackData();
       console.log('Callback data:', callbackData);
-      
-      const result = processWorkflowCallback(callbackData);
-      
+      const result = processWorkflowResponse(callbackData);
       if (result.success) {
         setStatus('success');
         setMessage('Callback processado com sucesso!');
@@ -78,13 +75,11 @@ export default function WorkflowCallback() {
               {status === 'processing' ? 'Processando...' : status === 'success' ? 'Sucesso' : 'Erro'}
             </Badge>
           </div>
-          
           <div className="text-center">
             <p className="text-sm text-muted-foreground">
               {message}
             </p>
           </div>
-
           {executionId && (
             <div className="text-center">
               <p className="text-xs text-muted-foreground">
@@ -92,7 +87,6 @@ export default function WorkflowCallback() {
               </p>
             </div>
           )}
-
           <div className="text-center">
             <p className="text-xs text-muted-foreground">
               Esta página pode ser fechada automaticamente.

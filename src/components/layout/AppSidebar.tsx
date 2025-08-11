@@ -1,4 +1,4 @@
-import { Users, Phone, BarChart3 } from "lucide-react";
+import { Users, Phone, BarChart3, MessageSquare } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -32,6 +32,12 @@ const navigationItems = [
     url: "/upphone",
     icon: Phone,
     description: "Consulta de ramais",
+  },
+  {
+    title: "Z-API",
+    url: "/zapi",
+    icon: MessageSquare,
+    description: "Consulta de dados Z-API",
   },
 ];
 
