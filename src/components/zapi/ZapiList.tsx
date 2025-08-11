@@ -77,7 +77,7 @@ const ZapiListComponent = function ZapiList() {
       addExecution(executionId);
 
       const response = await fetch(
-        "https://integrations-crm.absolutatecnologia.com.br/webhook/58f482fd-bbd9-4668-8c80-e56cce154df6",
+        "https://integrations-crm.absolutatecnologia.com.br/webhook/acc65f03-c4ca-4883-9c1c-85834710ed9b",
         {
           method: "POST",
           headers: {
@@ -390,11 +390,11 @@ const ZapiListComponent = function ZapiList() {
   }, [page, totalPages]);
 
   const showingFrom = useMemo(
-    () => (totalCount === 0 ? 0 : (page - 1) * PAGE_SIZE_OPTIONS.find(opt => opt === pageSize)?.value || 0 + 1),
+    () => totalCount === 0 ? 0 : (page - 1) * (pageSize === "Todos" ? totalCount : (pageSize as number)) + 1,
     [page, totalCount, pageSize]
   );
   const showingTo = useMemo(
-    () => Math.min(page * PAGE_SIZE_OPTIONS.find(opt => opt === pageSize)?.value || 0, totalCount),
+    () => totalCount === 0 ? 0 : Math.min(page * (pageSize === "Todos" ? totalCount : (pageSize as number)), totalCount),
     [page, totalCount, pageSize]
   );
 
