@@ -9,10 +9,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useWorkflowStatus } from "@/hooks/use-workflow-status";
 import {
-  registerWorkflowCallback,
-  generateCallbackUrl,
-} from "@/utils/workflow-callback";
-import {
   Table,
   TableBody,
   TableCaption,
@@ -62,21 +58,12 @@ const UsuariosListComponent = function UsuariosList() {
   const [processingStatus, setProcessingStatus] = useState<
     "idle" | "processando" | "concluido"
   >("idle");
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const doneTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Função para chamar o webhook
   const handleUpdate = async () => {
     setIsUpdating(true);
     setProcessingStatus("processando");
-    if (timerRef.current) clearTimeout(timerRef.current);
-    if (doneTimerRef.current) clearTimeout(doneTimerRef.current);
-    timerRef.current = setTimeout(() => {
-      setProcessingStatus("concluido");
-      doneTimerRef.current = setTimeout(() => {
-        setProcessingStatus("idle");
-      }, 5000); // 5 segundos mostrando 'Concluído!'
-    }, 40000);
+
     try {
       // Gerar um ID único para rastrear esta execução
       const executionId = `update_${Date.now()}_${Math.random()
@@ -85,13 +72,6 @@ const UsuariosListComponent = function UsuariosList() {
 
       // Adicionar à lista de execuções pendentes
       addExecution(executionId);
-
-      // Registrar callback para esta execução
-      registerWorkflowCallback(executionId, (data) => {
-        updateExecutionStatus(executionId, data.status, data.message);
-      });
-
-      const callbackUrl = generateCallbackUrl(executionId);
 
       const response = await fetch(
         "https://integrations-crm.absolutatecnologia.com.br/webhook/58f482fd-bbd9-4668-8c80-e56cce154df6",
@@ -103,22 +83,44 @@ const UsuariosListComponent = function UsuariosList() {
           body: JSON.stringify({
             action: "update_usuarios",
             execution_id: executionId,
-            callback_url: callbackUrl, // URL para callback
             timestamp: new Date().toISOString(),
           }),
         }
       );
 
       if (response.ok) {
-        toast({
-          title: "Workflow iniciado!",
-          description: "Aguardando conclusão do processamento...",
-        });
+        // Aguardar a resposta do webhook
+        const result = await response.json();
+
+        // Processar a resposta do n8n
+        if (result.status === "completed") {
+          setProcessingStatus("concluido");
+          updateExecutionStatus(executionId, "completed", result.message);
+          toast({
+            title: "Atualização concluída!",
+            description: result.message || "Usuários atualizados com sucesso.",
+          });
+        } else if (result.status === "failed") {
+          setProcessingStatus("idle");
+          updateExecutionStatus(executionId, "failed", result.message);
+          toast({
+            title: "Erro na atualização",
+            description: result.message || "Erro ao processar usuários.",
+            variant: "destructive",
+          });
+        } else {
+          // Status ainda em processamento
+          toast({
+            title: "Workflow iniciado!",
+            description: "Processamento em andamento...",
+          });
+        }
       } else {
         throw new Error(`Erro ${response.status}: ${response.statusText}`);
       }
     } catch (error) {
       console.error("Erro ao chamar webhook:", error);
+      setProcessingStatus("idle");
       toast({
         title: "Erro ao atualizar",
         description:
@@ -643,7 +645,9 @@ const UsuariosListComponent = function UsuariosList() {
                     {usuario.email}
                   </TableCell>
                   <TableCell className="text-muted-foreground font-mono text-sm">
-                    {usuario.iduppchannel ?? (usuario as any).idUppchannel ?? "-"}
+                    {usuario.iduppchannel ??
+                      (usuario as any).idUppchannel ??
+                      "-"}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {usuario.conta ?? "-"}

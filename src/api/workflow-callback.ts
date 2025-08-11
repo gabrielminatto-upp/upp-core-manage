@@ -1,9 +1,8 @@
-// Endpoint de callback para o n8n
-// Este arquivo pode ser usado para configurar um endpoint que recebe notificações do n8n
+import { processWorkflowCallback } from "@/utils/workflow-callback";
 
 export interface WorkflowCallback {
   execution_id: string;
-  status: 'completed' | 'failed';
+  status: "completed" | "failed";
   message?: string;
   timestamp: string;
   data?: any;
@@ -13,36 +12,58 @@ export interface WorkflowCallback {
 export const processWorkflowCallback = (callback: WorkflowCallback) => {
   // Aqui você pode implementar a lógica para processar o callback
   // Por exemplo, enviar uma notificação para o frontend
-  
-  console.log('Workflow callback received:', callback);
-  
+
+  console.log("Workflow callback received:", callback);
+
   // Em uma implementação real, você poderia:
   // 1. Validar o callback
   // 2. Atualizar o status no banco de dados
   // 3. Enviar uma notificação para o frontend via WebSocket ou Server-Sent Events
   // 4. Registrar logs da execução
-  
+
   return {
     success: true,
-    message: 'Callback processed successfully'
+    message: "Callback processed successfully",
   };
 };
 
-// Exemplo de como configurar um endpoint Express.js (se você tiver um servidor backend)
-/*
-import express from 'express';
-import { processWorkflowCallback } from './workflow-callback';
-
-const app = express();
-app.use(express.json());
-
-app.post('/api/workflow-callback', (req, res) => {
+// Endpoint para receber webhook de callback
+export const handleCallbackWebhook = async (request: Request) => {
   try {
-    const callback = req.body as WorkflowCallback;
-    const result = processWorkflowCallback(callback);
-    res.json(result);
+    const body = await request.json();
+
+    // Validar o payload
+    if (!body.execution_id || !body.status) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: "Payload inválido",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Processar o callback
+    const result = processWorkflowCallback(body);
+
+    return new Response(JSON.stringify(result), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error) {
-    res.status(400).json({ error: 'Invalid callback data' });
+    console.error("Erro ao processar webhook:", error);
+    return new Response(
+      JSON.stringify({
+        success: false,
+        message: "Erro interno",
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
-});
-*/ 
+};
