@@ -177,8 +177,9 @@ const UsuariosListComponent = function UsuariosList() {
       const exportData = data.map((u: any) => ({
         Nome: u.nome,
         Email: u.email,
-        "ID Uppchannel": u.idUppchannel,
+        "ID Uppchannel": u.idUppchannel ?? u.iduppchannel,
         "Conta/Empresa": u.conta,
+        Telefone: u.phone ?? "-",
         Tipo: u.tipo,
       }));
       const ws = XLSX.utils.json_to_sheet(exportData);
