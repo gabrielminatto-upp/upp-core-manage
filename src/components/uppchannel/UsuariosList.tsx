@@ -412,14 +412,16 @@ const UsuariosListComponent = function UsuariosList() {
     return pages;
   }, [page, totalPages]);
 
-  const showingFrom = useMemo(
-    () => (totalCount === 0 ? 0 : (page - 1) * (pageSize as number) + 1),
-    [page, totalCount, pageSize]
-  );
-  const showingTo = useMemo(
-    () => Math.min(page * (pageSize as number), totalCount),
-    [page, totalCount, pageSize]
-  );
+  const showingFrom = useMemo(() => {
+    if (totalCount === 0) return 0;
+    if (pageSize === "Todos") return 1;
+    return (page - 1) * (pageSize as number) + 1;
+  }, [page, totalCount, pageSize]);
+  
+  const showingTo = useMemo(() => {
+    if (pageSize === "Todos") return totalCount;
+    return Math.min(page * (pageSize as number), totalCount);
+  }, [page, totalCount, pageSize]);
 
   return (
     <div className="space-y-8">
