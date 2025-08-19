@@ -178,7 +178,7 @@ const ZapiListComponent = function ZapiList() {
       const exportData = data.map((item: any) => ({
         ID: item.id,
         Nome: item.nome,
-        "Data de Criação": item.criacao ? new Date(item.criacao).toLocaleDateString('pt-BR') : '',
+        "Data de Criação": item.criacao || '',
         "Status de Pagamento": item.paymentStatus,
         Middleware: item.middleware,
         "Telefone Conectado": item.phoneConnected === "true" || item.phoneConnected === true ? "Sim" : "Não",
@@ -660,7 +660,7 @@ const ZapiListComponent = function ZapiList() {
                     {item.nome}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {item.criacao ? new Date(item.criacao).toLocaleDateString('pt-BR') : "-"}
+                    {item.criacao || "-"}
                   </TableCell>
                   <TableCell>
                     {item.paymentStatus ? String(item.paymentStatus) : "-"}
