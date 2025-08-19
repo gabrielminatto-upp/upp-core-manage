@@ -1,4 +1,4 @@
-import { processWorkflowCallback } from "@/utils/workflow-callback";
+import { processWorkflowResponse } from "@/utils/workflow-callback";
 
 export interface WorkflowCallback {
   execution_id: string;

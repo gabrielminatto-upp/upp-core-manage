@@ -71,6 +71,7 @@ export function Dashboard() {
 
       setStats({
         totalUsuarios: totalUsuarios || 0,
+        usuariosAtivos: 0, // Placeholder - could be calculated later if needed
         totalRamais: ramais?.length || 0,
         ramaisAtivos: ramais?.filter((r) => r.status)?.length || 0,
       });

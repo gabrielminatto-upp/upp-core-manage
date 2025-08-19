@@ -145,7 +145,7 @@ const ZapiListComponent = function ZapiList() {
     let allData: any[] = [];
     let finished = false;
     while (!finished) {
-      let query = supabase.from("z-api").select("id, nome, criacao, paymentStatus, middleware, phoneConnected", { count: "exact" });
+      let query = (supabase as any).from("z-api").select("id, nome, criacao, paymentStatus, middleware, phoneConnected", { count: "exact" });
       if (statusFilter) query = query.eq("paymentStatus", statusFilter);
       if (searchTerm.trim()) {
         const searchLower = searchTerm.toLowerCase().trim();
@@ -200,7 +200,7 @@ const ZapiListComponent = function ZapiList() {
   const { data: statusOptions, isLoading: statusLoading } = useQuery<string[]>({
     queryKey: ["zapi_status_list"],
     queryFn: async (): Promise<string[]> => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("z-api")
         .select("paymentStatus")
         .not("paymentStatus", "is", null);
@@ -231,7 +231,7 @@ const ZapiListComponent = function ZapiList() {
       conectados: number;
       desconectados: number;
     }> => {
-      let query = supabase.from("z-api").select("id, nome, criacao, paymentStatus, middleware, phoneConnected", { count: "exact" });
+      let query = (supabase as any).from("z-api").select("id, nome, criacao, paymentStatus, middleware, phoneConnected", { count: "exact" });
 
       if (statusFilter) {
         query = query.eq("paymentStatus", statusFilter);
@@ -285,7 +285,7 @@ const ZapiListComponent = function ZapiList() {
         from = (page - 1) * (pageSize as number);
         to = from + (pageSize as number) - 1;
       }
-      let query = supabase
+      let query = (supabase as any)
         .from("z-api")
         .select("id, nome, criacao, paymentStatus, middleware, phoneConnected", { count: "exact" })
         .order(orderBy, { ascending: orderDir === "asc" });
