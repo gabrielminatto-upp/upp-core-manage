@@ -55,8 +55,8 @@ export function AppSidebar() {
 
   const getNavClass = (path: string) => {
     return isActive(path)
-      ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium shadow-lg"
-      : "hover:bg-sidebar-accent/50 hover:shadow-lg transition-all duration-200";
+      ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+      : "hover:bg-sidebar-accent/50 transition-all duration-200";
   };
 
   return (
@@ -109,22 +109,22 @@ export function AppSidebar() {
             Navegação
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu className="gap-3">
+            <SidebarMenu className="gap-4">
               {navigationItems.map((item) => (
-                <SidebarMenuItem key={item.title} className="my-2">
-                  <SidebarMenuButton asChild>
+                <SidebarMenuItem key={item.title} className="my-3">
+                  <SidebarMenuButton asChild size="lg">
                     <NavLink
                       to={item.url}
-                      className={`${getNavClass(item.url)} p-4 hover:p-6`}
+                      className={`${getNavClass(item.url)} p-6 hover:p-8 h-16`}
                       title={collapsed ? item.title : undefined}
                     >
-                      <item.icon className="h-4 w-4 shrink-0" />
+                      <item.icon className="h-6 w-6 shrink-0" />
                       {!collapsed && (
                         <div className="flex flex-col">
-                          <span className="text-sm font-medium">
+                          <span className="text-base font-medium">
                             {item.title}
                           </span>
-                          <span className="text-xs opacity-60">
+                          <span className="text-sm opacity-60">
                             {item.description}
                           </span>
                         </div>
