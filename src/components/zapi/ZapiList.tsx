@@ -40,10 +40,10 @@ import * as XLSX from "xlsx";
 interface ZapiItem {
   id: string;
   nome: string;
-  data_criacao: string;
-  status_pagamento: string;
-  meio: string;
-  conectado: boolean;
+  criacao: string;
+  paymentStatus: string;
+  middleware: string;
+  phoneConnected: boolean;
 }
 
 const PAGE_SIZE_OPTIONS = [1, 10, 100, "Todos"] as const;
@@ -145,12 +145,12 @@ const ZapiListComponent = function ZapiList() {
     let allData: any[] = [];
     let finished = false;
     while (!finished) {
-      let query = (supabase as any).from("zapi").select("id, nome, data_criacao, status_pagamento, meio, conectado", { count: "exact" });
-              if (statusFilter) query = query.eq("status_pagamento", statusFilter);
+      let query = (supabase as any).from("z-api").select("id, nome, criacao, paymentStatus, middleware, phoneConnected", { count: "exact" });
+              if (statusFilter) query = query.eq("paymentStatus", statusFilter);
       if (searchTerm.trim()) {
         const searchLower = searchTerm.toLowerCase().trim();
         query = query.or(
-          `nome.ilike.%${searchLower}%,meio.ilike.%${searchLower}%`
+          `nome.ilike.%${searchLower}%,middleware.ilike.%${searchLower}%`
         );
       }
       const { data, error } = await query.range(from, to);
@@ -178,10 +178,10 @@ const ZapiListComponent = function ZapiList() {
       const exportData = data.map((item: any) => ({
         ID: item.id,
         Nome: item.nome,
-        "Data de Criação": new Date(item.data_criacao).toLocaleDateString('pt-BR'),
-        "Status de Pagamento": item.status_pagamento,
-        Meio: item.meio,
-        Conectado: item.conectado ? "Sim" : "Não",
+        "Data de Criação": item.criacao ? new Date(item.criacao).toLocaleDateString('pt-BR') : '',
+        "Status de Pagamento": item.paymentStatus,
+        Middleware: item.middleware,
+        "Telefone Conectado": item.phoneConnected === "true" || item.phoneConnected === true ? "Sim" : "Não",
       }));
       const ws = XLSX.utils.json_to_sheet(exportData);
       const wb = XLSX.utils.book_new();
@@ -201,11 +201,11 @@ const ZapiListComponent = function ZapiList() {
     queryKey: ["zapi_status_list"],
     queryFn: async (): Promise<string[]> => {
       const { data, error } = await (supabase as any)
-        .from("zapi")
-        .select("status_pagamento")
-        .not("status_pagamento", "is", null);
+        .from("z-api")
+        .select("paymentStatus")
+        .not("paymentStatus", "is", null);
       if (error) throw error;
-      const statusList = [...new Set((data || []).map((r: any) => r.status_pagamento))];
+      const statusList = [...new Set((data || []).map((r: any) => r.paymentStatus))];
       return statusList.filter((s): s is string => s !== null);
     },
     meta: {
@@ -231,16 +231,16 @@ const ZapiListComponent = function ZapiList() {
       conectados: number;
       desconectados: number;
     }> => {
-      let query = (supabase as any).from("zapi").select("id, nome, data_criacao, status_pagamento, meio, conectado", { count: "exact" });
+      let query = (supabase as any).from("z-api").select("id, nome, criacao, paymentStatus, middleware, phoneConnected", { count: "exact" });
 
       if (statusFilter) {
-        query = query.eq("status_pagamento", statusFilter);
+        query = query.eq("paymentStatus", statusFilter);
       }
 
       if (searchTerm.trim()) {
         const searchLower = searchTerm.toLowerCase().trim();
         query = query.or(
-          `nome.ilike.%${searchLower}%,meio.ilike.%${searchLower}%`
+          `nome.ilike.%${searchLower}%,middleware.ilike.%${searchLower}%`
         );
       }
 
@@ -248,7 +248,7 @@ const ZapiListComponent = function ZapiList() {
       if (error) throw error;
 
       const total = data?.length || 0;
-      const conectados = data?.filter((item: any) => item.conectado).length || 0;
+      const conectados = data?.filter((item: any) => item.phoneConnected === "true" || item.phoneConnected === true).length || 0;
       const desconectados = total - conectados;
 
       return {
@@ -286,18 +286,18 @@ const ZapiListComponent = function ZapiList() {
         to = from + (pageSize as number) - 1;
       }
       let query = (supabase as any)
-        .from("zapi")
-        .select("id, nome, data_criacao, status_pagamento, meio, conectado", { count: "exact" })
+        .from("z-api")
+        .select("id, nome, criacao, paymentStatus, middleware, phoneConnected", { count: "exact" })
         .order(orderBy, { ascending: orderDir === "asc" });
 
       if (statusFilter) {
-        query = query.eq("status_pagamento", statusFilter);
+        query = query.eq("paymentStatus", statusFilter);
       }
 
       if (searchTerm.trim()) {
         const searchLower = searchTerm.toLowerCase().trim();
         query = query.or(
-          `nome.ilike.%${searchLower}%,meio.ilike.%${searchLower}%`
+          `nome.ilike.%${searchLower}%,middleware.ilike.%${searchLower}%`
         );
       }
 
@@ -305,7 +305,10 @@ const ZapiListComponent = function ZapiList() {
       if (error) throw error;
 
       return {
-        rows: (data || []) as ZapiItem[],
+        rows: (data || []).map((item: any) => ({
+          ...item,
+          phoneConnected: item.phoneConnected === "true" || item.phoneConnected === true
+        })) as ZapiItem[],
         count: count || 0,
       };
     },
@@ -500,7 +503,7 @@ const ZapiListComponent = function ZapiList() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="text"
-            placeholder="Pesquisar por nome ou meio..."
+            placeholder="Pesquisar por nome ou middleware..."
             value={searchTerm}
             onChange={(e) => handleSearchChange(e.target.value)}
             className="pl-10 h-10"
@@ -508,7 +511,7 @@ const ZapiListComponent = function ZapiList() {
         </div>
         {searchTerm && (
           <p className="text-xs text-muted-foreground mt-1">
-            Pesquisando por: "{searchTerm}" (nome ou meio)
+            Pesquisando por: "{searchTerm}" (nome ou middleware)
           </p>
         )}
       </div>
@@ -632,10 +635,10 @@ const ZapiListComponent = function ZapiList() {
             <TableRow>
               <TableHead className="cursor-pointer select-none" onClick={() => handleSort("id")}>ID {orderBy === "id" && (orderDir === "asc" ? <ArrowUp className="inline w-3 h-3" /> : <ArrowDown className="inline w-3 h-3" />)}</TableHead>
               <TableHead className="cursor-pointer select-none" onClick={() => handleSort("nome")}>Nome {orderBy === "nome" && (orderDir === "asc" ? <ArrowUp className="inline w-3 h-3" /> : <ArrowDown className="inline w-3 h-3" />)}</TableHead>
-                              <TableHead className="cursor-pointer select-none" onClick={() => handleSort("data_criacao")}>Criação {orderBy === "data_criacao" && (orderDir === "asc" ? <ArrowUp className="inline w-3 h-3" /> : <ArrowDown className="inline w-3 h-3" />)}</TableHead>
-                <TableHead className="cursor-pointer select-none" onClick={() => handleSort("status_pagamento")}>Status de Pagamento {orderBy === "status_pagamento" && (orderDir === "asc" ? <ArrowUp className="inline w-3 h-3" /> : <ArrowDown className="inline w-3 h-3" />)}</TableHead>
-                <TableHead className="cursor-pointer select-none" onClick={() => handleSort("meio")}>Middleware {orderBy === "meio" && (orderDir === "asc" ? <ArrowUp className="inline w-3 h-3" /> : <ArrowDown className="inline w-3 h-3" />)}</TableHead>
-                <TableHead className="cursor-pointer select-none" onClick={() => handleSort("conectado")}>Conectado {orderBy === "conectado" && (orderDir === "asc" ? <ArrowUp className="inline w-3 h-3" /> : <ArrowDown className="inline w-3 h-3" />)}</TableHead>
+              <TableHead className="cursor-pointer select-none" onClick={() => handleSort("criacao")}>Criação {orderBy === "criacao" && (orderDir === "asc" ? <ArrowUp className="inline w-3 h-3" /> : <ArrowDown className="inline w-3 h-3" />)}</TableHead>
+                <TableHead className="cursor-pointer select-none" onClick={() => handleSort("paymentStatus")}>Status de Pagamento {orderBy === "paymentStatus" && (orderDir === "asc" ? <ArrowUp className="inline w-3 h-3" /> : <ArrowDown className="inline w-3 h-3" />)}</TableHead>
+                <TableHead className="cursor-pointer select-none" onClick={() => handleSort("middleware")}>Middleware {orderBy === "middleware" && (orderDir === "asc" ? <ArrowUp className="inline w-3 h-3" /> : <ArrowDown className="inline w-3 h-3" />)}</TableHead>
+                <TableHead className="cursor-pointer select-none" onClick={() => handleSort("phoneConnected")}>Conectado {orderBy === "phoneConnected" && (orderDir === "asc" ? <ArrowUp className="inline w-3 h-3" /> : <ArrowDown className="inline w-3 h-3" />)}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -657,20 +660,20 @@ const ZapiListComponent = function ZapiList() {
                     {item.nome}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {item.data_criacao ? String(item.data_criacao) : "-"}
+                    {item.criacao ? new Date(item.criacao).toLocaleDateString('pt-BR') : "-"}
                   </TableCell>
                   <TableCell>
-                    {item.status_pagamento ? String(item.status_pagamento) : "-"}
+                    {item.paymentStatus ? String(item.paymentStatus) : "-"}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {item.meio ? String(item.meio) : "-"}
+                    {item.middleware ? String(item.middleware) : "-"}
                   </TableCell>
                   <TableCell>
                     <Badge
-                      variant={getConnectionBadgeVariant(item.conectado)}
+                      variant={getConnectionBadgeVariant(item.phoneConnected)}
                       className="text-xs"
                     >
-                      {item.conectado ? "Sim" : "Não"}
+                      {item.phoneConnected ? "Sim" : "Não"}
                     </Badge>
                   </TableCell>
                 </TableRow>
