@@ -7,7 +7,7 @@ import path from "path";
 export default defineConfig(({ mode }) => ({
   server: {
     host: "0.0.0.0", // Permite conexões externas
-    port: 8089,
+    port: 8080,
   },
   plugins: [
     react(),

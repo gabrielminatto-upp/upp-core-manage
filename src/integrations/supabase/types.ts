@@ -7,13 +7,40 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "13.0.4"
   }
   public: {
     Tables: {
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ramais: {
         Row: {
           central: string
@@ -43,7 +70,7 @@ export type Database = {
           conta: string
           email: string | null
           idsupa: string
-          idUppchannel: string
+          iduppchannel: string
           nome: string
           phone: string | null
           tipo: string
@@ -52,7 +79,7 @@ export type Database = {
           conta: string
           email?: string | null
           idsupa?: string
-          idUppchannel: string
+          iduppchannel: string
           nome: string
           phone?: string | null
           tipo: string
@@ -61,10 +88,37 @@ export type Database = {
           conta?: string
           email?: string | null
           idsupa?: string
-          idUppchannel?: string
+          iduppchannel?: string
           nome?: string
           phone?: string | null
           tipo?: string
+        }
+        Relationships: []
+      }
+      "z-api": {
+        Row: {
+          criacao: string | null
+          id: string
+          middleware: string | null
+          nome: string | null
+          paymentStatus: string | null
+          phoneConnected: string | null
+        }
+        Insert: {
+          criacao?: string | null
+          id: string
+          middleware?: string | null
+          nome?: string | null
+          paymentStatus?: string | null
+          phoneConnected?: string | null
+        }
+        Update: {
+          criacao?: string | null
+          id?: string
+          middleware?: string | null
+          nome?: string | null
+          paymentStatus?: string | null
+          phoneConnected?: string | null
         }
         Relationships: []
       }
@@ -83,7 +137,7 @@ export type Database = {
         Args: { conta_filter?: string }
         Returns: {
           total: number
-          unique_emails: number
+          unique_uppchannel_ids: number
         }[]
       }
     }
