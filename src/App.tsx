@@ -8,9 +8,25 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { RoleProvider } from "@/contexts/RoleContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AdminRoute } from "@/components/admin/AdminRoute";
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
+import { PageLoadingSkeleton } from "@/components/loading/PageLoadingSkeleton";
+import { useRoutePreloader } from "@/hooks/use-route-preloader";
 
-const queryClient = new QueryClient();
+// Configuração otimizada do React Query
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutos
+      gcTime: 10 * 60 * 1000, // 10 minutos (antes cacheTime)
+      retry: 1,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: 'always',
+    },
+    mutations: {
+      retry: 1,
+    },
+  },
+});
 
 // Substituir imports estáticos por lazy loading
 const Index = lazy(() => import("./pages/Index"));
@@ -23,15 +39,17 @@ const WorkflowCallback = lazy(() => import("./pages/WorkflowCallback"));
 const Auth = lazy(() => import("./pages/Auth"));
 const Admin = lazy(() => import("./pages/Admin"));
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <RoleProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-          <Suspense fallback={<div>Carregando página...</div>}>
+// Componente interno para usar o hook de preload
+function AppContent() {
+  const { preloadCommonRoutes } = useRoutePreloader();
+
+  useEffect(() => {
+    // Preload das rotas mais comuns após o carregamento inicial
+    preloadCommonRoutes();
+  }, [preloadCommonRoutes]);
+
+  return (
+    <Suspense fallback={<PageLoadingSkeleton />}>
             <Routes>
               <Route path="/auth" element={<Auth />} />
               <Route
@@ -109,11 +127,23 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
-        </BrowserRouter>
-      </TooltipProvider>
-    </RoleProvider>
-  </AuthProvider>
-</QueryClientProvider>
+  );
+}
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <AuthProvider>
+      <RoleProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AppContent />
+          </BrowserRouter>
+        </TooltipProvider>
+      </RoleProvider>
+    </AuthProvider>
+  </QueryClientProvider>
 );
 
 export default App;

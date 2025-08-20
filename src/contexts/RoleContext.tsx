@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -20,9 +20,19 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
   const [role, setRole] = useState<AppRole | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchUserRole = async () => {
+  // Cache para evitar refetch desnecessário
+  const [cachedUserId, setCachedUserId] = useState<string | null>(null);
+
+  const fetchUserRole = useCallback(async () => {
     if (!user) {
       setRole(null);
+      setLoading(false);
+      setCachedUserId(null);
+      return;
+    }
+
+    // Evitar refetch se o usuário não mudou
+    if (cachedUserId === user.id && role !== null) {
       setLoading(false);
       return;
     }
@@ -40,38 +50,41 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       } else {
         setRole(data.role as AppRole);
       }
+      setCachedUserId(user.id);
     } catch (error) {
       console.error('Error fetching user role:', error);
       setRole('user'); // Default to user role
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, cachedUserId, role]);
 
-  const refreshRole = async () => {
+  const refreshRole = useCallback(async () => {
     setLoading(true);
+    setCachedUserId(null); // Force refresh
     await fetchUserRole();
-  };
+  }, [fetchUserRole]);
 
-  const hasRole = (requiredRole: AppRole): boolean => {
+  const hasRole = useCallback((requiredRole: AppRole): boolean => {
     if (!role) return false;
     if (requiredRole === 'user') return true; // All users have user role
     if (requiredRole === 'admin') return role === 'admin';
     return false;
-  };
+  }, [role]);
 
   useEffect(() => {
     fetchUserRole();
-  }, [user]);
+  }, [fetchUserRole]);
 
-  const value: RoleContextType = {
+  // Memoizar o value para evitar re-renders desnecessários
+  const value: RoleContextType = useMemo(() => ({
     role,
     loading,
     isAdmin: role === 'admin',
     isUser: role === 'user',
     refreshRole,
     hasRole,
-  };
+  }), [role, loading, refreshRole, hasRole]);
 
   return (
     <RoleContext.Provider value={value}>
