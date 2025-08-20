@@ -15,6 +15,7 @@ const Index = lazy(() => import("./pages/Index"));
 const Uppchannel = lazy(() => import("./pages/Uppchannel"));
 const Upphone = lazy(() => import("./pages/Upphone"));
 const Zapi = lazy(() => import("./pages/Zapi"));
+const Profile = lazy(() => import("./pages/Profile"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const WorkflowCallback = lazy(() => import("./pages/WorkflowCallback"));
 const Auth = lazy(() => import("./pages/Auth"));
@@ -65,6 +66,16 @@ const App = () => (
                   <ProtectedRoute>
                     <MainLayout>
                       <Zapi />
+                    </MainLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <MainLayout>
+                      <Profile />
                     </MainLayout>
                   </ProtectedRoute>
                 }
