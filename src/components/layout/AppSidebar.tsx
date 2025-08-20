@@ -1,4 +1,4 @@
-import { Users, Phone, BarChart3, MessageSquare } from "lucide-react";
+import { Users, Phone, BarChart3, MessageSquare, Settings } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -12,6 +12,8 @@ import {
   SidebarHeader,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { useRole } from "@/contexts/RoleContext";
+import { Badge } from "@/components/ui/badge";
 import uppLogo from "@/assets/upp-logo.png";
 
 const navigationItems = [
@@ -45,6 +47,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
   const collapsed = state === "collapsed";
+  const { isAdmin, role, loading } = useRole();
 
   const isActive = (path: string) => {
     if (path === "/") {
@@ -94,9 +97,19 @@ export function AppSidebar() {
           </div>
           {!collapsed && (
             <div>
-              <h2 className="font-semibold text-sidebar-foreground">
-                Upp Portal
-              </h2>
+              <div className="flex items-center gap-2">
+                <h2 className="font-semibold text-sidebar-foreground">
+                  Upp Portal
+                </h2>
+                {!loading && role && (
+                  <Badge 
+                    variant={isAdmin ? "destructive" : "secondary"}
+                    className="text-xs"
+                  >
+                    {isAdmin ? "Admin" : "User"}
+                  </Badge>
+                )}
+              </div>
               <p className="text-xs text-sidebar-foreground/60">Consultas</p>
             </div>
           )}
@@ -133,6 +146,31 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+              
+              {/* Admin-only menu item */}
+              {isAdmin && (
+                <SidebarMenuItem className="my-3">
+                  <SidebarMenuButton asChild size="lg">
+                    <NavLink
+                      to="/admin"
+                      className={`${getNavClass("/admin")} p-6 hover:p-8 h-16`}
+                      title={collapsed ? "Administração" : undefined}
+                    >
+                      <Settings className="h-6 w-6 shrink-0" />
+                      {!collapsed && (
+                        <div className="flex flex-col">
+                          <span className="text-base font-medium">
+                            Administração
+                          </span>
+                          <span className="text-sm opacity-60">
+                            Gerenciar usuários
+                          </span>
+                        </div>
+                      )}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
