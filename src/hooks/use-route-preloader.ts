@@ -5,6 +5,7 @@ const routePreloaders = {
   '/': () => import('../pages/Index'),
   '/uppchannel': () => import('../pages/Uppchannel'),
   '/zapi': () => import('../pages/Zapi'),
+  '/comercial': () => import('../pages/Comercial'),
   '/profile': () => import('../pages/Profile'),
   '/admin': () => import('../pages/Admin'),
   '/upphone': () => import('../pages/Upphone'),
@@ -26,6 +27,7 @@ export function useRoutePreloader() {
       preloadRoute('/');
       preloadRoute('/uppchannel');
       preloadRoute('/zapi');
+      preloadRoute('/comercial');
     }, 1000);
   };
 

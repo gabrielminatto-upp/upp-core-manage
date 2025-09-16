@@ -1,4 +1,4 @@
-import { Users, Phone, BarChart3, MessageSquare, Settings } from "lucide-react";
+import { Users, Phone, BarChart3, MessageSquare, Settings, TrendingUp } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -40,6 +40,12 @@ const navigationItems = [
     url: "/zapi",
     icon: MessageSquare,
     description: "Consulta de dados Z-API",
+  },
+  {
+    title: "Comercial",
+    url: "/comercial",
+    icon: TrendingUp,
+    description: "Dashboard de vendas",
   },
 ];
 

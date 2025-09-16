@@ -65,6 +65,48 @@ export type Database = {
         }
         Relationships: []
       }
+      comercial: {
+        Row: {
+          id: string
+          cliente: string
+          vendedor: string
+          produto: string
+          valor: number
+          status: string
+          data_venda: string
+          comissao: number
+          meta_mensal: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          cliente: string
+          vendedor: string
+          produto: string
+          valor?: number
+          status?: string
+          data_venda?: string
+          comissao?: number
+          meta_mensal?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          cliente?: string
+          vendedor?: string
+          produto?: string
+          valor?: number
+          status?: string
+          data_venda?: string
+          comissao?: number
+          meta_mensal?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string

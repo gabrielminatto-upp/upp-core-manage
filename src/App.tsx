@@ -38,6 +38,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const WorkflowCallback = lazy(() => import("./pages/WorkflowCallback"));
 const Auth = lazy(() => import("./pages/Auth"));
 const Admin = lazy(() => import("./pages/Admin"));
+const Comercial = lazy(() => import("./pages/Comercial"));
 
 // Componente interno para usar o hook de preload
 function AppContent() {
@@ -88,6 +89,16 @@ function AppContent() {
                   <ProtectedRoute>
                     <MainLayout>
                       <Zapi />
+                    </MainLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/comercial"
+                element={
+                  <ProtectedRoute>
+                    <MainLayout>
+                      <Comercial />
                     </MainLayout>
                   </ProtectedRoute>
                 }
